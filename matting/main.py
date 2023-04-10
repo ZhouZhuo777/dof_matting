@@ -3,14 +3,20 @@
 # 按 ⌃R 执行或将其替换为您的代码。
 # 按 双击 ⇧ 在所有地方搜索类、文件、工具窗口、操作和设置。
 
+def combinations(n, arr):
+    result = []
+    helper(n, arr, [], result)
+    return result
 
-def print_hi(name):
-    # 在下面的代码行中使用断点来调试脚本。
-    print(f'Hi, {name}')  # 按 ⌘F8 切换断点。
+def helper(n, arr, temp, result):
+    if n == 0:
+        result.append(temp)
+        return
+    for i in range(len(arr)):
+        helper(n-1, arr[i+1:], temp+[arr[i]], result)
 
 
-# 按间距中的绿色按钮以运行脚本。
-if __name__ == '__main__':
-    print_hi('PyCharm')
+arr = ['1','2','3','4','5','6','7','8','9']
+n=5
 
-# 访问 https://www.jetbrains.com/help/pycharm/ 获取 PyCharm 帮助
+print(len(combinations(n, arr)))
