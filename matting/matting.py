@@ -1,25 +1,4 @@
-import numpy
-import numpy as np
-from PIL import Image
-from skimage.metrics import structural_similarity
-# import ctypes
-# print(ctypes.__path__)
-
-def fun1(png1, png2):
-    imgA = Image.open(png1)
-    imgB = Image.open(png2)
-    width, height = imgA.size
-    for x in range(0, width):
-        for y in range(0, height):
-            color1 = imgA.getpixel((x, y))
-            color2 = imgB.getpixel((x, y))
-            if color1 == color2:
-                imgA.putpixel((x, y), (255, 0, 0, 0))
-            else:
-                imgA.putpixel((x, y), (95,235,95))
-    imgA.save('33.png')
-    print("1end")
-
+import base64
 def draw_rect(size,save_path):
     imgbase = Image.open("test.png")
     base_width, base_height = imgbase.size
@@ -64,14 +43,6 @@ def draw_rect(size,save_path):
 
 # draw_rect((3000,2000),"999999.png")
 
-
-
-
-
-from PIL import Image
-from PIL import ImageChops
-
-
 def fun2(png1, png2):
     imgA = Image.open('png1')
     imgB = Image.open('png2')
@@ -107,24 +78,39 @@ def fun3(png1, png2):
 # print(result)
 
 # -*- coding: utf-8 -*-
+from skimage.metrics import structural_similarity
+from PIL import ImageChops
+from PIL import Image
+import math
+import operator
+from functools import reduce
+# -*- coding: utf-8 -*-
 import skimage
 # from skimage.metrics import structural_similarity
 import imutils
 import cv2
-# import os
+import os
 from pathlib import Path
 import numpy as np
 
-
 class AutoMatting():
-    def __init__(self, png1, png2):
+    def __init__(self, png1, png2,outpath):
         self.png1 = png1
         self.png2 = png2
+        # self.baseframepng = "G:\\img_lib/frame_base.png"
         self.cntsList = []
         self.minArea = 2000
         self.minW = 300
         self.minH = 380
         self.minR = 380
+        self.outpath = outpath
+
+        from frame_base_png import img as frame_base
+        tmp = open('frame_base.png', 'wb')
+        tmp.write(base64.b64decode(frame_base))
+        tmp.close()
+        self.baseframepng = "frame_base.png"
+
 
     def JudgmentContains(self, curCnts):
         for index in range(len(self.cntsList)):
@@ -132,21 +118,17 @@ class AutoMatting():
             (x1, y1, w1, h1) = cv2.boundingRect(curCnts)
             if x1 >= x and y1 >= y and x1 + w1 <= x + w and y1 + h1 <= y + h:  # 传入的框被之前的框包含
                 return
-                # print(11111)
             elif x1 <= x and y1 <= y and x1 + w1 >= x + w and y1 + h1 >= y + h:  # 传入的框包含之前的框
                 self.cntsList[index] = None
                 if not self.JudgmentList(curCnts):
                     self.cntsList.append(curCnts)
-                # print(2222)
             elif (x1 + w1 >= x and x + w >= x1 and y1 + h1 >= y and y + h >= y1):  # 传入的框相交之前的框
-                # print(4444)
                 s = w * h
                 s1 = w1 * h1
                 if s1 > s:
                     self.cntsList[index] = None
                     if not self.JudgmentList(curCnts):
                         self.cntsList.append(curCnts)
-                    # print(3333)
                 else:
                     return
         if not self.JudgmentList(curCnts):
@@ -161,9 +143,10 @@ class AutoMatting():
         return False
 
     def play(self):
-        print("开始抠图")
+        print("开始抠图" + self.outpath)
         splitPath = self.png1.split("\\")
-        outPutPath = self.png1.replace(splitPath[len(splitPath)-1],"koutu/")
+        # outPutPath = self.png1.replace(splitPath[len(splitPath)-1],"koutu/")
+        outPutPath = self.outpath
         a = Path(outPutPath)
         # a = Path("./koutu/")
         a.mkdir(exist_ok=True)
@@ -184,7 +167,7 @@ class AutoMatting():
 
         # 找到不同点的轮廓以致于我们可以在被标识为“不同”的区域周围放置矩形
         thresh = cv2.threshold(diff, 0, 255, cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)[1]
-        cv2.imwrite(outPutPath + "huidu.png", thresh)
+        # cv2.imwrite(outPutPath + "huidu.png", thresh) #保存灰度图
         cnts, hierarchy = cv2.findContours(thresh.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         # cnts = cnts[0] if imutils.is_cv4() else cnts[1]
         # print(len(cnts),'\n',hierarchy,type(hierarchy))
@@ -233,40 +216,45 @@ class AutoMatting():
             (x, y, w, h) = cv2.boundingRect(cnts)  # 得到外接矩形
             (c_x, c_y), raidus = cv2.minEnclosingCircle(cnts)  # 得到外接圆
             curImage = cv2.getRectSubPix(imageC, (w, h), (x + w / 2, y + h / 2))
-            cv2.imwrite(outPutPath + str(n) + ".png", curImage)
+            cv2.imwrite(outPutPath + "mix_"+ str(n) +".png" , curImage)
 
             center = (int(c_x), int(c_y))
             r = int(raidus)
             rectS = w * h
             rectC = raidus * raidus * math.pi
 
+            oldw = w
+            oldh = h
+            oldr = r
+
             if r<190:r = 190
             centerCut = (r, r)
             if w < h:
-                if h<self.minW: w,h = (self.minW,self.minH)
-                elif w<self.minW and h<self.minH:w,h = (self.minW,self.minH)
-                elif w>self.minW and h<self.minH:w,h = (w,self.minH)
+                if w < self.minW: w = self.minW
+                if h < self.minH: h = self.minH
             else:
-                if w<self.minW: w,h = (self.minH,self.minW)
-                elif h<self.minW and w<self.minH:h,w = (self.minW,self.minH)
-                elif h>self.minW and w<self.minH:h,w = (w,self.minH)
+                if h<self.minW :h=self.minW
+                if w<self.minH :w =self.minH
             if rectS > rectC:
-                cv2.circle(imageB, center, r, (95,235,95), 10)  # 画外接圆
+                # cv2.circle(imageB, center, r, (95,235,95), 10)  # 画外接圆
+                cv2.circle(imageB, center, oldr, (95,235,95), 10)  # 画老的，小的外接圆
                 imageCircle = np.zeros((2 * r, 2 * r, 4))  # 创建opencv图像
                 imageCircle[:] = (0, 0, 0, 0)
                 cv2.circle(imageCircle, centerCut, r - 21, (95,235,95, 255), 42)  # 画每个抠图的圆边框
-                cv2.imwrite(outPutPath + str(n) + "_rect.png", imageCircle)
+                cv2.imwrite(outPutPath + "mix_"+ str(n) +"_frame.png" , imageCircle)
             else:
-                cv2.rectangle(imageB, (x, y), (x + w, y + h), (95,235,95), 10)  # 画外接矩形
+                # cv2.rectangle(imageB, (x, y), (x + w, y + h), (95,235,95), 10)  # 画外接矩形
+                cv2.rectangle(imageB, (x, y), (x + oldw, y + oldh), (95,235,95), 10)  # 画老的小的外接矩形
                 # imageRect = np.zeros((curImage.shape[0], curImage.shape[1], 4))  # 创建opencv图像
                 # imageRect[:] = (0, 0, 0, 0)
-
-
-                self.draw_rect((w,h),outPutPath + str(n) + "_rect.png")
+                self.draw_rect((w,h),outPutPath + "mix_"+ str(n) +"_frame.png" )
                 # cv2.rectangle(imageRect, (21, 21), (w - 21, h - 21), (95,235,95, 255), 42)  # 画每个抠图的边框
                 # cv2.imwrite(outPutPath + str(n) + "_rect.png", imageRect)
             # print(curImage.size)
             n += 1
+
+        cv2.imwrite(outPutPath + "huidu.png", thresh) #保存灰度图
+        cv2.imwrite(outPutPath + "result.png", imageB) #得到原图的画框图
 
         # imageRect = np.zeros((500,500,4))
         # imageRect[:] = (0, 0, 0, 0)
@@ -274,18 +262,19 @@ class AutoMatting():
         # 用cv2.imshow 展现最终对比之后的图片， cv2.imwrite 保存最终的结果图片
         # //cv2.imshow("Modified", imageB)
         # cv2.imwrite(r"mask.png", mask)
-        cv2.imwrite(outPutPath + "result.png", imageB)
         import os
         # if a.is_dir():
         #     os.startfile(outPutPath)
-        print("任务执行结束")
+        os.remove(outPutPath + 'back_up.png')
+        print(outPutPath + "抠图结束")
+        os.remove('frame_base.png')
         # cv2.waitKey(0)
 
     def draw_rect(self,size, save_path):
 
         thickness = 26
 
-        imgbase = Image.open("base.png")
+        imgbase = Image.open(self.baseframepng)
         base_width, base_height = imgbase.size
         img_new = Image.new('RGBA', size)
         new_width, new_height1 = size
@@ -379,7 +368,6 @@ def rounded_rectangle(src, top_left, bottom_right, radius=1, color=255, thicknes
                 color, thickness, line_type)
 
     return src
-
 
 # top_left = (0, 0)
 # bottom_right = (500, 800)
@@ -528,3 +516,4 @@ def rounded_rectangle(src, top_left, bottom_right, radius=1, color=255, thicknes
 # cv2.imwrite("result.png", imageB)
 # print("end")
 # # cv2.waitKey(0)
+import numpy

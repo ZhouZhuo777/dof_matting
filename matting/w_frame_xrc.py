@@ -17,7 +17,7 @@ import wx.xrc
 class DofAutoMatting ( wx.Frame ):
 
 	def __init__( self, parent ):
-		wx.Frame.__init__ ( self, parent, id = wx.ID_ANY, title = u"Dof资源抠图内部测试", pos = wx.DefaultPosition, size = wx.Size( 500,231 ), style = wx.DEFAULT_FRAME_STYLE|wx.TAB_TRAVERSAL )
+		wx.Frame.__init__ ( self, parent, id = wx.ID_ANY, title = u"Dof资源抠图程序", pos = wx.DefaultPosition, size = wx.Size( 500,231 ), style = wx.DEFAULT_FRAME_STYLE|wx.TAB_TRAVERSAL )
 
 		self.SetSizeHints( wx.DefaultSize, wx.DefaultSize )
 
@@ -27,21 +27,19 @@ class DofAutoMatting ( wx.Frame ):
 
 		sbSizer2 = wx.StaticBoxSizer( wx.StaticBox( sbSizer3.GetStaticBox(), wx.ID_ANY, wx.EmptyString ), wx.HORIZONTAL )
 
-		self.m_staticText1 = wx.StaticText( sbSizer2.GetStaticBox(), wx.ID_ANY, u"图一路径:", wx.Point( -1,-1 ), wx.DefaultSize, 0 )
+
+		sbSizer2.Add( ( 0, 0), 1, wx.EXPAND, 5 )
+
+		self.m_staticText1 = wx.StaticText( sbSizer2.GetStaticBox(), wx.ID_ANY, u"图片资源库路径:", wx.Point( -1,-1 ), wx.DefaultSize, 0 )
 		self.m_staticText1.Wrap( -1 )
 
 		sbSizer2.Add( self.m_staticText1, 0, wx.ALL, 5 )
 
-		self.m_textCtrl1 = wx.TextCtrl( sbSizer2.GetStaticBox(), wx.ID_ANY, wx.EmptyString, wx.Point( -1,-1 ), wx.Size( 150,-1 ), 0 )
+		self.m_textCtrl1 = wx.TextCtrl( sbSizer2.GetStaticBox(), wx.ID_ANY, u"G:\\img_lib", wx.Point( -1,-1 ), wx.Size( 300,-1 ), 0 )
 		sbSizer2.Add( self.m_textCtrl1, 0, wx.ALL, 5 )
 
-		self.m_staticText11 = wx.StaticText( sbSizer2.GetStaticBox(), wx.ID_ANY, u"图二路径:", wx.Point( -1,-1 ), wx.DefaultSize, 0 )
-		self.m_staticText11.Wrap( -1 )
 
-		sbSizer2.Add( self.m_staticText11, 0, wx.ALL, 5 )
-
-		self.m_textCtrl11 = wx.TextCtrl( sbSizer2.GetStaticBox(), wx.ID_ANY, wx.EmptyString, wx.Point( -1,-1 ), wx.Size( 150,-1 ), 0 )
-		sbSizer2.Add( self.m_textCtrl11, 0, wx.ALL, 5 )
+		sbSizer2.Add( ( 0, 0), 1, wx.EXPAND, 5 )
 
 
 		sbSizer3.Add( sbSizer2, 1, wx.EXPAND, 5 )
