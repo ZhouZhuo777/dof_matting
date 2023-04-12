@@ -94,5 +94,7 @@ window = w_frame(parent=None)
 window.Show()
 app.MainLoop()
 
+# PX:CM=28.35:1
+
 # mat = matting.AutoMatting(png1="111.png", png2="222.png")
 # mat.play()

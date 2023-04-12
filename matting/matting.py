@@ -1,12 +1,14 @@
 import base64
-def draw_rect(size,save_path):
+
+
+def draw_rect(size, save_path):
     imgbase = Image.open("test.png")
     base_width, base_height = imgbase.size
     img_new = Image.new('RGBA', size)
-    new_width,new_height1= size
+    new_width, new_height1 = size
 
-    base_halfW = int(base_width/2)
-    base_halfH = int(base_height/2)
+    base_halfW = int(base_width / 2)
+    base_halfH = int(base_height / 2)
 
     redW = new_width - base_width
     redH = new_height1 - base_height
@@ -16,30 +18,31 @@ def draw_rect(size,save_path):
 
     for x in range(0, base_halfW):
         for y in range(0, base_halfH):
-            img_new.putpixel((x,y),imgbase.getpixel((x, y)))
+            img_new.putpixel((x, y), imgbase.getpixel((x, y)))
     for x in range(base_halfW, base_width):
-        for y in range(0 , base_halfH):
-            img_new.putpixel((x + redW , y),imgbase.getpixel((x, y)))
+        for y in range(0, base_halfH):
+            img_new.putpixel((x + redW, y), imgbase.getpixel((x, y)))
     for x in range(0, base_halfW):
         for y in range(base_halfH, base_height):
-            img_new.putpixel((x , y + redH),imgbase.getpixel((x, y)))
+            img_new.putpixel((x, y + redH), imgbase.getpixel((x, y)))
     for x in range(base_halfW, base_width):
         for y in range(base_halfH, base_height):
             img_new.putpixel((x + redW, y + redH), imgbase.getpixel((x, y)))
     for x in range(base_halfW, DW):
         for y in range(0, 42):
-            img_new.putpixel((x, y), (95,235,95, 255))
+            img_new.putpixel((x, y), (95, 235, 95, 255))
     for x in range(base_halfW, DW):
-        for y in range(new_height1-42, new_height1):
-            img_new.putpixel((x, y), (95,235,95, 255))
+        for y in range(new_height1 - 42, new_height1):
+            img_new.putpixel((x, y), (95, 235, 95, 255))
     for x in range(0, 42):
-        for y in range(base_halfH , DH):
-            img_new.putpixel((x, y), (95,235,95, 255))
-    for x in range(new_width-42, new_width):
-        for y in range(base_halfH , DH):
-            img_new.putpixel((x, y), (95,235,95, 255))
+        for y in range(base_halfH, DH):
+            img_new.putpixel((x, y), (95, 235, 95, 255))
+    for x in range(new_width - 42, new_width):
+        for y in range(base_halfH, DH):
+            img_new.putpixel((x, y), (95, 235, 95, 255))
 
     img_new.save(save_path)
+
 
 # draw_rect((3000,2000),"999999.png")
 
@@ -93,24 +96,25 @@ import os
 from pathlib import Path
 import numpy as np
 
+
 class AutoMatting():
-    def __init__(self, png1, png2,outpath):
+    def __init__(self, png1, png2, outpath):
         self.png1 = png1
         self.png2 = png2
         # self.baseframepng = "G:\\img_lib/frame_base.png"
         self.cntsList = []
-        self.minArea = 2000
+        self.minArea = 1000
         self.minW = 300
         self.minH = 380
         self.minR = 380
         self.outpath = outpath
+        self.px2cm = 1 / 28.35
 
         from frame_base_png import img as frame_base
         tmp = open('frame_base.png', 'wb')
         tmp.write(base64.b64decode(frame_base))
         tmp.close()
         self.baseframepng = "frame_base.png"
-
 
     def JudgmentContains(self, curCnts):
         for index in range(len(self.cntsList)):
@@ -159,6 +163,7 @@ class AutoMatting():
         imageC = cv2.imread(outPutPath + "back_up.png", cv2.IMREAD_UNCHANGED)
         grayA = cv2.cvtColor(imageA, cv2.COLOR_RGB2GRAY)
         grayB = cv2.cvtColor(imageB, cv2.COLOR_RGB2GRAY)
+        self.wholeH, self.wholeW, self.channels = imageA.shape
 
         # 计算两个灰度图像之间的结构相似度指数
         (score, diff) = structural_similarity(grayA, grayB, full=True)
@@ -210,13 +215,18 @@ class AutoMatting():
         # if not os.path.exists("./koutu/"):
         #     os.mkdir("./koutu/")
 
+        filename = outPutPath + "coordinate"
+        f = open(filename, "w")
+        f.write(f"{round(self.wholeW * self.px2cm, 3)},{round(self.wholeH * self.px2cm, 3)}" + '\n')
+        self.index = 1
         for cnts in self.cntsList:
             if cnts is None:
                 continue
             (x, y, w, h) = cv2.boundingRect(cnts)  # 得到外接矩形
             (c_x, c_y), raidus = cv2.minEnclosingCircle(cnts)  # 得到外接圆
             curImage = cv2.getRectSubPix(imageC, (w, h), (x + w / 2, y + h / 2))
-            cv2.imwrite(outPutPath + "mix_"+ str(n) +".png" , curImage)
+            cv2.imwrite(outPutPath + "mix_" + str(n) + ".png", curImage)
+            self.get_location_file(x + w / 2, y + h / 2, w, h, f)
 
             center = (int(c_x), int(c_y))
             r = int(raidus)
@@ -227,34 +237,35 @@ class AutoMatting():
             oldh = h
             oldr = r
 
-            if r<190:r = 190
+            if r < 190: r = 190
             centerCut = (r, r)
             if w < h:
                 if w < self.minW: w = self.minW
                 if h < self.minH: h = self.minH
             else:
-                if h<self.minW :h=self.minW
-                if w<self.minH :w =self.minH
+                if h < self.minW: h = self.minW
+                if w < self.minH: w = self.minH
             if rectS > rectC:
                 # cv2.circle(imageB, center, r, (95,235,95), 10)  # 画外接圆
-                cv2.circle(imageB, center, oldr, (95,235,95), 10)  # 画老的，小的外接圆
+                cv2.circle(imageB, center, oldr, (95, 235, 95), 10)  # 画老的，小的外接圆
                 imageCircle = np.zeros((2 * r, 2 * r, 4))  # 创建opencv图像
                 imageCircle[:] = (0, 0, 0, 0)
-                cv2.circle(imageCircle, centerCut, r - 21, (95,235,95, 255), 42)  # 画每个抠图的圆边框
-                cv2.imwrite(outPutPath + "mix_"+ str(n) +"_frame.png" , imageCircle)
+                cv2.circle(imageCircle, centerCut, r - 21, (95, 235, 95, 255), 42)  # 画每个抠图的圆边框
+                cv2.imwrite(outPutPath + "mix_" + str(n) + "_frame.png", imageCircle)
+
             else:
                 # cv2.rectangle(imageB, (x, y), (x + w, y + h), (95,235,95), 10)  # 画外接矩形
-                cv2.rectangle(imageB, (x, y), (x + oldw, y + oldh), (95,235,95), 10)  # 画老的小的外接矩形
+                cv2.rectangle(imageB, (x, y), (x + oldw, y + oldh), (95, 235, 95), 10)  # 画老的小的外接矩形
                 # imageRect = np.zeros((curImage.shape[0], curImage.shape[1], 4))  # 创建opencv图像
                 # imageRect[:] = (0, 0, 0, 0)
-                self.draw_rect((w,h),outPutPath + "mix_"+ str(n) +"_frame.png" )
+                self.draw_rect((w, h), outPutPath + "mix_" + str(n) + "_frame.png")
                 # cv2.rectangle(imageRect, (21, 21), (w - 21, h - 21), (95,235,95, 255), 42)  # 画每个抠图的边框
                 # cv2.imwrite(outPutPath + str(n) + "_rect.png", imageRect)
             # print(curImage.size)
             n += 1
-
-        cv2.imwrite(outPutPath + "huidu.png", thresh) #保存灰度图
-        cv2.imwrite(outPutPath + "result.png", imageB) #得到原图的画框图
+        f.close()
+        cv2.imwrite(outPutPath + "huidu.png", thresh)  # 保存灰度图
+        cv2.imwrite(outPutPath + "result.png", imageB)  # 得到原图的画框图
 
         # imageRect = np.zeros((500,500,4))
         # imageRect[:] = (0, 0, 0, 0)
@@ -270,7 +281,16 @@ class AutoMatting():
         os.remove('frame_base.png')
         # cv2.waitKey(0)
 
-    def draw_rect(self,size, save_path):
+    def get_location_file(self, x, y, w, h, f):
+        print(x, y, w, h, self.wholeW, self.wholeH)
+        f.write(
+            f"{self.index}:{round(x * self.px2cm, 3)},{round(y * self.px2cm, 3)}:{round(w * self.px2cm, 3)},{round(h * self.px2cm, 3)}" + '\n')
+        self.index += 1
+
+    # for line in content.splitlines():
+    #     f.write(line + "\n")
+
+    def draw_rect(self, size, save_path):
 
         thickness = 26
 
@@ -314,6 +334,7 @@ class AutoMatting():
                 img_new.putpixel((x, y), (95, 235, 95, 255))
 
         img_new.save(save_path)
+
 
 def rounded_rectangle(src, top_left, bottom_right, radius=1, color=255, thickness=1, line_type=cv2.LINE_AA):
     #  corners:
@@ -369,6 +390,7 @@ def rounded_rectangle(src, top_left, bottom_right, radius=1, color=255, thicknes
 
     return src
 
+
 # top_left = (0, 0)
 # bottom_right = (500, 800)
 # color = (255, 0, 0)
@@ -378,7 +400,6 @@ def rounded_rectangle(src, top_left, bottom_right, radius=1, color=255, thicknes
 #
 # cv2.imshow('rounded_rect', img)
 # cv2.waitKey(0)
-
 
 
 # cntsList = []
