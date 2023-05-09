@@ -59,18 +59,20 @@ class w_frame(w_frame_xrc.DofAutoMatting):
         elif not libpath.exists():
             print("文件夹不存在")
         img_dic = {}
-        imgAlist = self.getAllPng(img_lib_path,'*_A.png')
-        imgBlist = self.getAllPng(img_lib_path,'*_B.png')
+        imgAlist = self.getAllPng(img_lib_path,'*_mask.png')
+        imgBlist = self.getAllPng(img_lib_path,'*_new.png')
+        print(len(imgAlist))
+        print(len(imgBlist))
         for img in imgAlist:
             allstr = re.split('\.|_', img)
-            Bpath = (allstr[0]+'_B.'+allstr[2])
+            Bpath = (allstr[0]+'_new.'+allstr[2])
             if len(allstr) !=3:
                 print(allstr + "该为文件命名格式不对")
                 continue
             if allstr[0] in img_dic.keys():
                 continue
             elif not Bpath in imgBlist:
-                print(img + "没有B文件")
+                print(img + "没有new文件")
                 continue
             else:
                 img_dic[allstr[0]] = (img_lib_path + f"/{img}",img_lib_path + f'/{Bpath}')
@@ -80,7 +82,7 @@ class w_frame(w_frame_xrc.DofAutoMatting):
             i+=1
             outPath = img_lib_path + f'/{i}/'
             mat = matting.AutoMatting(png1=imgAB[0], png2=imgAB[1],outpath= outPath)
-            mat.play()
+            mat.play2()
     def getAllPng(self,path,key):
         res = []
         for folderName, subFolders, fileNames in os.walk(path):

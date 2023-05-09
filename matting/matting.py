@@ -281,6 +281,280 @@ class AutoMatting():
         os.remove('frame_base.png')
         # cv2.waitKey(0)
 
+    def play1(self):
+        self.minArea = 500
+        print("开始抠图" + self.outpath)
+        splitPath = self.png1.split("\\")
+        # outPutPath = self.png1.replace(splitPath[len(splitPath)-1],"koutu/")
+        outPutPath = self.outpath
+        a = Path(outPutPath)
+        # a = Path("./koutu/")
+        a.mkdir(exist_ok=True)
+
+        # 加载两张图片并将他们转换为灰度 IMREAD_GRAYSCALE IMREAD_UNCHANGED COLOR_RGB2GRAY
+        imageA = cv2.imread(self.png1, cv2.IMREAD_UNCHANGED)
+        imageB = cv2.imread(self.png2, cv2.IMREAD_UNCHANGED)
+        imgB = Image.open(self.png2)
+        imgB.save(outPutPath + 'back_up.png')
+        imageC = cv2.imread(outPutPath + "back_up.png", cv2.IMREAD_UNCHANGED)
+        grayA = cv2.cvtColor(imageA, cv2.COLOR_RGB2GRAY)
+        grayB = cv2.cvtColor(imageB, cv2.COLOR_RGB2GRAY)
+        self.wholeH, self.wholeW, self.channels = imageA.shape
+
+        # 计算两个灰度图像之间的结构相似度指数
+        (score, diff) = structural_similarity(grayA, grayB, full=True)
+        diff = (diff * 255).astype("uint8")
+        # print("SSIM:{}".format(score))
+
+        # 找到不同点的轮廓以致于我们可以在被标识为“不同”的区域周围放置矩形
+        thresh = cv2.threshold(diff, 0, 255, cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)[1]
+        # cv2.imwrite(outPutPath + "huidu.png", thresh) #保存灰度图
+        cnts, hierarchy = cv2.findContours(thresh.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        # cnts = cnts[0] if imutils.is_cv4() else cnts[1]
+        # print(len(cnts),'\n',hierarchy,type(hierarchy))
+
+        # mask = np.zeros(imageA.shape, dtype='uint8')
+
+        # 找到一系列区域，在区域周围放置矩形
+        for i in range(0, len(cnts)):
+            # if not hierarchy[i][3] == -1:
+            #     continue
+            area = cv2.contourArea(cnts[i])
+            # cv2.arcLength() 轮廓的周长
+            if area < self.minArea:
+                continue
+            self.JudgmentContains(cnts[i])
+
+            # (x, y, w, h) = cv2.boundingRect(cnts[i])
+            # curImage = cv2.getRectSubPix(imageC,(w,h),(x + w/2,y + h/2))
+            # width, height = curImage.size
+            # for i in range(0,width):
+            #     for j in range(0,height):
+            #         # color = curImage.getpixel((i, j))
+            #         if curImage.pointPolygonTest(cnts[i],(i,j),True) < 0:
+            #             curImage.putpixel((i, j), (0, 0, 0,0))
+            # cv2.imwrite("./koutu/"+str(n)+".png", curImage)
+            # n+=1
+            # cv2.rectangle(imageA, (x, y), (x + w, y + h), (0, 255, 0), 10)
+            # cv2.rectangle(imageB, (x, y), (x + w, y + h), (0, 255, 0), 10)
+            # cv2.drawContours(imageB, cnts[i], -1, (0, 255, 0), 10) #可以画出轮廓的线
+            # center = (int(x),int(y))
+            # (x,y),raidus = cv2.minEnclosingCircle(c) #得到外接圆
+            # cv2.circle(imageB, center, int(raidus), (0, 255, 0), 10)# 画到外接圆
+            # cv2.drawContours(mask, [c], 0, (0, 255, 0), -1)
+            # 可以绘制斜着的框
+            # rect = cv2.minAreaRect(cnts[i])
+            # box = cv2.boxPoints(rect)
+            # box = np.int0(box)
+            # cv2.drawContours(imageB, [box], 0, (0, 255, 0), 10)
+        n = 1
+        # if not os.path.exists("./koutu/"):
+        #     os.mkdir("./koutu/")
+
+        filename = outPutPath + "coordinate"
+        f = open(filename, "w")
+        f.write(f"{round(self.wholeW * self.px2cm, 3)},{round(self.wholeH * self.px2cm, 3)}" + '\n')
+        self.index = 1
+        for cnts in self.cntsList:
+            if cnts is None:
+                continue
+            (x, y, w, h) = cv2.boundingRect(cnts)  # 得到外接矩形
+            (c_x, c_y), raidus = cv2.minEnclosingCircle(cnts)  # 得到外接圆
+            curImage = cv2.getRectSubPix(imageC, (w, h), (x + w / 2, y + h / 2))
+            cv2.imwrite(outPutPath + "mix_" + str(n) + ".png", curImage)
+            self.get_location_file(x + w / 2, y + h / 2, w, h, f)
+
+            center = (int(c_x), int(c_y))
+            r = int(raidus)
+            rectS = w * h
+            rectC = raidus * raidus * math.pi
+
+            oldw = w
+            oldh = h
+            oldr = r
+
+            if r < 190: r = 190
+            centerCut = (r, r)
+            if w < h:
+                if w < self.minW: w = self.minW
+                if h < self.minH: h = self.minH
+            else:
+                if h < self.minW: h = self.minW
+                if w < self.minH: w = self.minH
+            if rectS > rectC:
+                # cv2.circle(imageB, center, r, (95,235,95), 10)  # 画外接圆
+                cv2.circle(imageB, center, oldr, (95, 235, 95), 10)  # 画老的，小的外接圆
+                imageCircle = np.zeros((2 * r, 2 * r, 4))  # 创建opencv图像
+                imageCircle[:] = (0, 0, 0, 0)
+                cv2.circle(imageCircle, centerCut, r - 21, (95, 235, 95, 255), 42)  # 画每个抠图的圆边框
+                cv2.imwrite(outPutPath + "mix_" + str(n) + "_frame.png", imageCircle)
+
+            else:
+                # cv2.rectangle(imageB, (x, y), (x + w, y + h), (95,235,95), 10)  # 画外接矩形
+                cv2.rectangle(imageB, (x, y), (x + oldw, y + oldh), (95, 235, 95), 10)  # 画老的小的外接矩形
+                # imageRect = np.zeros((curImage.shape[0], curImage.shape[1], 4))  # 创建opencv图像
+                # imageRect[:] = (0, 0, 0, 0)
+                self.draw_rect((w, h), outPutPath + "mix_" + str(n) + "_frame.png")
+                # cv2.rectangle(imageRect, (21, 21), (w - 21, h - 21), (95,235,95, 255), 42)  # 画每个抠图的边框
+                # cv2.imwrite(outPutPath + str(n) + "_rect.png", imageRect)
+            # print(curImage.size)
+            n += 1
+        f.close()
+        cv2.imwrite(outPutPath + "huidu.png", thresh)  # 保存灰度图
+        cv2.imwrite(outPutPath + "result.png", imageB)  # 得到原图的画框图
+
+        # imageRect = np.zeros((500,500,4))
+        # imageRect[:] = (0, 0, 0, 0)
+        # cv2.imshow("Modified", imageRect)
+        # 用cv2.imshow 展现最终对比之后的图片， cv2.imwrite 保存最终的结果图片
+        # //cv2.imshow("Modified", imageB)
+        # cv2.imwrite(r"mask.png", mask)
+        import os
+        # if a.is_dir():
+        #     os.startfile(outPutPath)
+        os.remove(outPutPath + 'back_up.png')
+        print(outPutPath + "抠图结束")
+        os.remove('frame_base.png')
+        # cv2.waitKey(0)
+
+    def play2(self):
+        print("开始抠图" + self.outpath)
+        splitPath = self.png1.split("\\")
+        # outPutPath = self.png1.replace(splitPath[len(splitPath)-1],"koutu/")
+        outPutPath = self.outpath
+        a = Path(outPutPath)
+        # a = Path("./koutu/")
+        a.mkdir(exist_ok=True)
+
+        # 加载两张图片并将他们转换为灰度 IMREAD_GRAYSCALE IMREAD_UNCHANGED COLOR_RGB2GRAY
+        imageA = cv2.imread(self.png1, cv2.IMREAD_UNCHANGED)
+        imageB = cv2.imread(self.png2, cv2.IMREAD_UNCHANGED)
+        imgB = Image.open(self.png2)
+        imgB.save(outPutPath + 'back_up.png')
+        imageC = cv2.imread(outPutPath + "back_up.png", cv2.IMREAD_UNCHANGED)
+        # grayA = cv2.cvtColor(imageA, cv2.COLOR_RGBA2GRAY)
+        # grayB = cv2.cvtColor(imageB, cv2.COLOR_RGB2GRAY)
+        self.wholeH, self.wholeW, self.channels = imageB.shape
+
+        # 计算两个灰度图像之间的结构相似度指数
+        # (score, diff) = structural_similarity(grayA, grayB, full=True)
+        # diff = (diff * 255).astype("uint8")
+        # print("SSIM:{}".format(score))
+
+        # 找到不同点的轮廓以致于我们可以在被标识为“不同”的区域周围放置矩形
+        # thresh = cv2.threshold(imageA, 0, 255, cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)[1]
+        # cv2.imwrite(outPutPath + "huidu.png", thresh) #保存灰度图
+        cnts, hierarchy = cv2.findContours(imageA.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        # cnts = cnts[0] if imutils.is_cv4() else cnts[1]
+        # print(len(cnts),'\n',hierarchy,type(hierarchy))
+
+        # mask = np.zeros(imageA.shape, dtype='uint8')
+
+        # 找到一系列区域，在区域周围放置矩形
+        for i in range(0, len(cnts)):
+            # if not hierarchy[i][3] == -1:
+            #     continue
+            area = cv2.contourArea(cnts[i])
+            # cv2.arcLength() 轮廓的周长
+            # if area < self.minArea:
+            #     continue
+            self.JudgmentContains(cnts[i])
+
+            # (x, y, w, h) = cv2.boundingRect(cnts[i])
+            # curImage = cv2.getRectSubPix(imageC,(w,h),(x + w/2,y + h/2))
+            # width, height = curImage.size
+            # for i in range(0,width):
+            #     for j in range(0,height):
+            #         # color = curImage.getpixel((i, j))
+            #         if curImage.pointPolygonTest(cnts[i],(i,j),True) < 0:
+            #             curImage.putpixel((i, j), (0, 0, 0,0))
+            # cv2.imwrite("./koutu/"+str(n)+".png", curImage)
+            # n+=1
+            # cv2.rectangle(imageA, (x, y), (x + w, y + h), (0, 255, 0), 10)
+            # cv2.rectangle(imageB, (x, y), (x + w, y + h), (0, 255, 0), 10)
+            # cv2.drawContours(imageB, cnts[i], -1, (0, 255, 0), 10) #可以画出轮廓的线
+            # center = (int(x),int(y))
+            # (x,y),raidus = cv2.minEnclosingCircle(c) #得到外接圆
+            # cv2.circle(imageB, center, int(raidus), (0, 255, 0), 10)# 画到外接圆
+            # cv2.drawContours(mask, [c], 0, (0, 255, 0), -1)
+            # 可以绘制斜着的框
+            # rect = cv2.minAreaRect(cnts[i])
+            # box = cv2.boxPoints(rect)
+            # box = np.int0(box)
+            # cv2.drawContours(imageB, [box], 0, (0, 255, 0), 10)
+        n = 1
+        # if not os.path.exists("./koutu/"):
+        #     os.mkdir("./koutu/")
+
+        filename = outPutPath + "coordinate"
+        f = open(filename, "w")
+        f.write(f"{round(self.wholeW * self.px2cm, 3)},{round(self.wholeH * self.px2cm, 3)}" + '\n')
+        self.index = 1
+        for cnts in self.cntsList:
+            if cnts is None:
+                continue
+            (x, y, w, h) = cv2.boundingRect(cnts)  # 得到外接矩形
+            (c_x, c_y), raidus = cv2.minEnclosingCircle(cnts)  # 得到外接圆
+            curImage = cv2.getRectSubPix(imageC, (w, h), (x + w / 2, y + h / 2))
+            cv2.imwrite(outPutPath + "mix_" + str(n) + ".png", curImage)
+            self.get_location_file(x + w / 2, y + h / 2, w, h, f)
+
+            center = (int(c_x), int(c_y))
+            r = int(raidus)
+            rectS = w * h
+            rectC = raidus * raidus * math.pi
+
+            oldw = w
+            oldh = h
+            oldr = r
+
+            if r < 190:
+                print(r)
+                r = 190
+            centerCut = (r, r)
+            if w < h:
+                if w < self.minW: w = self.minW
+                if h < self.minH: h = self.minH
+            else:
+                if h < self.minW: h = self.minW
+                if w < self.minH: w = self.minH
+            if rectS > rectC:
+                # cv2.circle(imageB, center, r, (95,235,95), 10)  # 画外接圆
+                cv2.circle(imageB, center, oldr, (95, 235, 95), 10)  # 画老的，小的外接圆
+                imageCircle = np.zeros((2 * r, 2 * r, 4))  # 创建opencv图像
+                imageCircle[:] = (0, 0, 0, 0)
+                cv2.circle(imageCircle, centerCut, r - 21, (95, 235, 95, 255), 42)  # 画每个抠图的圆边框
+                cv2.imwrite(outPutPath + "mix_" + str(n) + "_frame.png", imageCircle)
+
+            else:
+                # cv2.rectangle(imageB, (x, y), (x + w, y + h), (95,235,95), 10)  # 画外接矩形
+                cv2.rectangle(imageB, (x, y), (x + oldw, y + oldh), (95, 235, 95), 10)  # 画老的小的外接矩形
+                # imageRect = np.zeros((curImage.shape[0], curImage.shape[1], 4))  # 创建opencv图像
+                # imageRect[:] = (0, 0, 0, 0)
+                self.draw_rect((w, h), outPutPath + "mix_" + str(n) + "_frame.png")
+                # cv2.rectangle(imageRect, (21, 21), (w - 21, h - 21), (95,235,95, 255), 42)  # 画每个抠图的边框
+                # cv2.imwrite(outPutPath + str(n) + "_rect.png", imageRect)
+            # print(curImage.size)
+            n += 1
+        f.close()
+        # cv2.imwrite(outPutPath + "huidu.png", thresh)  # 保存灰度图
+        cv2.imwrite(outPutPath + "result.png", imageB)  # 得到原图的画框图
+
+        # imageRect = np.zeros((500,500,4))
+        # imageRect[:] = (0, 0, 0, 0)
+        # cv2.imshow("Modified", imageRect)
+        # 用cv2.imshow 展现最终对比之后的图片， cv2.imwrite 保存最终的结果图片
+        # //cv2.imshow("Modified", imageB)
+        # cv2.imwrite(r"mask.png", mask)
+        import os
+        # if a.is_dir():
+        #     os.startfile(outPutPath)
+        os.remove(outPutPath + 'back_up.png')
+        print(outPutPath + "抠图结束")
+        os.remove('frame_base.png')
+        # cv2.waitKey(0)
+
+
     def get_location_file(self, x, y, w, h, f):
         print(x, y, w, h, self.wholeW, self.wholeH)
         f.write(
