@@ -82,7 +82,7 @@ class w_frame(w_frame_xrc.DofAutoMatting):
             i+=1
             outPath = img_lib_path + f'/{i}/'
             mat = matting.AutoMatting(png1=imgAB[0], png2=imgAB[1],outpath= outPath)
-            mat.play2()
+            mat.play3()
     def getAllPng(self,path,key):
         res = []
         for folderName, subFolders, fileNames in os.walk(path):

@@ -106,7 +106,7 @@ class AutoMatting():
         self.minArea = 1000
         self.minW = 300
         self.minH = 380
-        self.minR = 380
+        self.minR = 190
         self.outpath = outpath
         self.px2cm = 1 / 28.35
 
@@ -436,6 +436,11 @@ class AutoMatting():
         # grayB = cv2.cvtColor(imageB, cv2.COLOR_RGB2GRAY)
         self.wholeH, self.wholeW, self.channels = imageB.shape
 
+        if self.wholeW<1600:
+            self.minW = self.minW/2
+            self.minH = self.minH/2
+            self.minR = self.minR/2
+
         # 计算两个灰度图像之间的结构相似度指数
         # (score, diff) = structural_similarity(grayA, grayB, full=True)
         # diff = (diff * 255).astype("uint8")
@@ -508,9 +513,9 @@ class AutoMatting():
             oldh = h
             oldr = r
 
-            if r < 190:
-                print(r)
-                r = 190
+            if r < self.minR:
+                # print(r)
+                r = self.minR
             centerCut = (r, r)
             if w < h:
                 if w < self.minW: w = self.minW
@@ -519,16 +524,16 @@ class AutoMatting():
                 if h < self.minW: h = self.minW
                 if w < self.minH: w = self.minH
             if rectS > rectC:
-                # cv2.circle(imageB, center, r, (95,235,95), 10)  # 画外接圆
-                cv2.circle(imageB, center, oldr, (95, 235, 95), 10)  # 画老的，小的外接圆
+                cv2.circle(imageB, center, r, (95,235,95), 10)  # 画外接圆
+                # cv2.circle(imageB, center, oldr, (95, 235, 95), 10)  # 画老的，小的外接圆
                 imageCircle = np.zeros((2 * r, 2 * r, 4))  # 创建opencv图像
                 imageCircle[:] = (0, 0, 0, 0)
                 cv2.circle(imageCircle, centerCut, r - 21, (95, 235, 95, 255), 42)  # 画每个抠图的圆边框
                 cv2.imwrite(outPutPath + "mix_" + str(n) + "_frame.png", imageCircle)
 
             else:
-                # cv2.rectangle(imageB, (x, y), (x + w, y + h), (95,235,95), 10)  # 画外接矩形
-                cv2.rectangle(imageB, (x, y), (x + oldw, y + oldh), (95, 235, 95), 10)  # 画老的小的外接矩形
+                cv2.rectangle(imageB, (x, y), (x + w, y + h), (95,235,95), 10)  # 画外接矩形
+                # cv2.rectangle(imageB, (x, y), (x + oldw, y + oldh), (95, 235, 95), 10)  # 画老的小的外接矩形
                 # imageRect = np.zeros((curImage.shape[0], curImage.shape[1], 4))  # 创建opencv图像
                 # imageRect[:] = (0, 0, 0, 0)
                 self.draw_rect((w, h), outPutPath + "mix_" + str(n) + "_frame.png")
@@ -553,6 +558,94 @@ class AutoMatting():
         print(outPutPath + "抠图结束")
         os.remove('frame_base.png')
         # cv2.waitKey(0)
+
+    def play3(self):
+        print("开始抠图" + self.outpath)
+        outPutPath = self.outpath
+        a = Path(outPutPath)
+        a.mkdir(exist_ok=True)
+
+        # 加载两张图片并将他们转换为灰度 IMREAD_GRAYSCALE IMREAD_UNCHANGED COLOR_RGB2GRAY
+        imageA = cv2.imread(self.png1, cv2.IMREAD_UNCHANGED)
+        imageB = cv2.imread(self.png2, cv2.IMREAD_UNCHANGED)
+        imgB = Image.open(self.png2)
+        imgB.save(outPutPath + 'back_up.png')
+        imageC = cv2.imread(outPutPath + "back_up.png", cv2.IMREAD_UNCHANGED)
+        # grayA = cv2.cvtColor(imageA, cv2.COLOR_RGBA2GRAY)
+        # grayB = cv2.cvtColor(imageB, cv2.COLOR_RGB2GRAY)
+        self.wholeH, self.wholeW, self.channels = imageB.shape
+
+        if self.wholeW<1600:
+            self.minW = self.minW/2
+            self.minH = self.minH/2
+            self.minR = self.minR/2
+
+        cnts, hierarchy = cv2.findContours(imageA.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+
+        # 找到一系列区域，在区域周围放置矩形
+        for i in range(0, len(cnts)):
+            area = cv2.contourArea(cnts[i])#轮廓的面积
+            self.JudgmentContains(cnts[i])
+        n = 1
+        filename = outPutPath + "coordinate"
+        f = open(filename, "w")
+        f.write(f"{round(self.wholeW * self.px2cm, 3)},{round(self.wholeH * self.px2cm, 3)}" + '\n')
+        self.index = 1
+        for cnts in self.cntsList:
+            if cnts is None:
+                continue
+            (x, y, w, h) = cv2.boundingRect(cnts)  # 得到外接矩形
+            rect = cv2.minAreaRect(cnts)  # 得到面积最小的外接矩形
+            (c_x, c_y), raidus = cv2.minEnclosingCircle(cnts)  # 得到外接圆
+            curImage = cv2.getRectSubPix(imageC, (w, h), (x + w / 2, y + h / 2))
+            cv2.imwrite(outPutPath + "mix_" + str(n) + ".png", curImage)
+            self.get_location_file(x + w / 2, y + h / 2, w, h, f)
+
+            points = cv2.boxPoints(rect)
+            points = np.int0(points)
+
+            center = (int(c_x), int(c_y))
+            r = int(raidus)
+            rectS = w * h
+            rectC = raidus * raidus * math.pi
+
+            oldw = w
+            oldh = h
+            oldr = r
+
+            if r < self.minR:
+                # print(r)
+                r = self.minR
+            centerCut = (r, r)
+            if w < h:
+                if w < self.minW: w = self.minW
+                if h < self.minH: h = self.minH
+            else:
+                if h < self.minW: h = self.minW
+                if w < self.minH: w = self.minH
+            # if rectS > rectC:
+            #     cv2.circle(imageB, center, r, (95,235,95), 10)  # 画外接圆
+            #     # cv2.circle(imageB, center, oldr, (95, 235, 95), 10)  # 画老的，小的外接圆
+            #     imageCircle = np.zeros((2 * r, 2 * r, 4))  # 创建opencv图像
+            #     imageCircle[:] = (0, 0, 0, 0)
+            #     cv2.circle(imageCircle, centerCut, r - 21, (95, 235, 95, 255), 42)  # 画每个抠图的圆边框
+            #     cv2.imwrite(outPutPath + "mix_" + str(n) + "_frame.png", imageCircle)
+            #
+            # else:
+            #     cv2.rectangle(imageB, (x, y), (x + w, y + h), (95,235,95), 10)  # 画外接矩形
+            #     self.draw_rect((w, h), outPutPath + "mix_" + str(n) + "_frame.png")
+
+            cv2.drawContours(imageB, [points], 0, (95, 235, 95, 255), 10)
+            # self.draw_rect((w, h), outPutPath + "mix_" + str(n) + "_frame.png")
+            n += 1
+        f.close()
+        cv2.imwrite(outPutPath + "result.png", imageB)  # 得到原图的画框图
+
+        import os
+        os.remove(outPutPath + 'back_up.png')
+        print(outPutPath + "抠图结束")
+        os.remove('frame_base.png')
 
 
     def get_location_file(self, x, y, w, h, f):
