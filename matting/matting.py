@@ -1,5 +1,7 @@
 import base64
 
+from psd_tools import PSDImage
+
 
 def draw_rect(size, save_path):
     imgbase = Image.open("test.png")
@@ -702,6 +704,84 @@ class AutoMatting():
 
         img_new.save(save_path)
 
+class AutoMattingPSD():
+    def __init__(self, psd, outpath):
+        self.psd = psd
+        # self.baseframepng = "G:\\img_lib/frame_base.png"
+        self.cntsList = []
+        self.minArea = 1000
+        self.minW = 300
+        self.minH = 380
+        self.minR = 190
+        self.outpath = outpath
+        self.px2cm = 1 / 28.35
+        self.layer_list = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10']
+
+        # from frame_base_png import img as frame_base
+        # tmp = open('frame_base.png', 'wb')
+        # tmp.write(base64.b64decode(frame_base))
+        # tmp.close()
+        # self.baseframepng = "frame_base.png"
+
+    def play(self):
+        print("开始抠图" + self.outpath)
+        outPutPath = self.outpath
+        a = Path(outPutPath)
+        a.mkdir(exist_ok=True)
+
+        psd = PSDImage.open(self.psd)
+        img_num_base = None
+        img_base = None
+        for layer in psd:
+            if layer.name == "177":
+                # img_num_base = layer.numpy()
+                img_base = layer.composite()
+                break
+
+        if img_base is not None:
+            img_num_base = np.array(img_base)  # imagebase转换成numpy格式
+            gray_base = cv2.cvtColor(img_num_base, cv2.COLOR_RGBA2GRAY)
+            img_png = psd.composite()
+            img_num_all_mix = np.array(img_png)
+            gray_all_mix = cv2.cvtColor(img_num_all_mix, cv2.COLOR_RGB2GRAY)
+            (all_score, all_diff) = structural_similarity(gray_base, gray_all_mix, full=True)
+            all_diff = (all_diff * 255).astype("uint8")
+            all_thresh = cv2.threshold(all_diff, 0, 255, cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)[1]
+
+            for curlayer in psd:
+                if curlayer.is_group():
+                    continue
+                elif curlayer.name in self.layer_list:
+                    img_mix = psd.composite(layer_filter=lambda
+                        layer: layer.name == curlayer.name or layer.name == '177')
+                    img_num_mix = np.array(img_mix)
+                    gray_mix = cv2.cvtColor(img_num_mix, cv2.COLOR_RGB2GRAY)
+                    (score, diff) = structural_similarity(gray_base, gray_mix, full=True)
+                    diff = (diff * 255).astype("uint8")
+                    thresh = cv2.threshold(diff, 0, 255, cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)[1]
+                    cnts, hierarchy = cv2.findContours(thresh.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_TC89_KCOS)
+                    point_list = []
+                    for curcnt in cnts:
+                        for point in curcnt:
+                            point_list.append(point)
+                    cnt = np.array(point_list)
+                    rect = cv2.minAreaRect(cnt)
+                    points = cv2.boxPoints(rect)
+                    points = np.int0(points)
+                    retval = cv2.fitEllipse(cnt)
+                    (x_, y_), radius = cv2.minEnclosingCircle(cnt)
+                    center = (int(x_), int(y_))
+                    radius = int(radius)
+                    # cv2.circle(all_thresh, center, radius, (95, 235, 95, 255), 10)  # 圆
+                    # cv2.ellipse(all_thresh, retval, (95, 235, 95, 255), 10)  # 椭圆
+                    cv2.drawContours(all_thresh, [points], 0, (95, 235, 95, 255), 10)  # 矩形
+
+                    # cv2.circle(img_num_all_mix, center, radius, (95, 235, 95, 255), 10)  # 圆
+                    # cv2.ellipse(img_num_all_mix, retval, (95, 235, 95, 255), 10)  # 椭圆
+                    cv2.drawContours(img_num_all_mix, [points], 0, (95, 235, 95, 255), 10)  # 矩形
+            cv2.imwrite(f"{outPutPath}huidus//huiduoooo.png", all_thresh)
+            cv2.imwrite(f"{outPutPath}huidus//mixoooo.png", img_num_all_mix)
+        print(outPutPath + "抠图结束")
 
 def rounded_rectangle(src, top_left, bottom_right, radius=1, color=255, thickness=1, line_type=cv2.LINE_AA):
     #  corners:
