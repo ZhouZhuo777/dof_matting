@@ -5,7 +5,7 @@ block_cipher = None
 
 
 a = Analysis(
-    ['matting\\UITest.py'],
+    ['matting\\dof_ui.py'],
     pathex=['matting\\frame_base_png.py'],
     binaries=[],
     datas=[],

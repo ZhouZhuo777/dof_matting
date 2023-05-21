@@ -209,7 +209,15 @@ def get_len(pos1,pos2):
     dy = y1 - y2
     return math.pow(dx*dx + dy*dy,0.5)
 
-psd = PSDImage.open("1.psd")
+# def get_location_file(x, y, w, h, f):
+#     print(x, y, w, h)
+#     px2cm = 1 / 28.35
+#     f.write(
+#         f"{self.index}:{round(x * px2cm, 3)},{round(y * px2cm, 3)}:{round(w * px2cm, 3)},{round(h * px2cm, 3)}" + '\n')
+#     self.index += 1
+
+psd_name = '11'
+psd = PSDImage.open(f"{psd_name}.psd")
 # layer1 = "1"
 # i = 1
 # for layer in psd:
@@ -224,6 +232,8 @@ psd = PSDImage.open("1.psd")
         # for child in layer:
         #     print(child)
 
+# px2cm = 1 / 28.35
+px2cm = 25.4 / 3000
 print(psd.size)
 # psd.save("out.psd")
 
@@ -249,17 +259,21 @@ layer_list = ['1','2','3','4','5','6','7','8','9','10']
 for layer in psd:
     if layer.is_group():
         for baselayer in layer:
-            if baselayer.name == "177":
+            if baselayer.name == "base":
                 img_num_base = baselayer.numpy()
                 img_base = baselayer.composite()
                 # cv2.imshow("test1", img_num_base)
                 # cv2.waitKey(0)
                 # img_png = psd.composite()
                 # img_png.save('test_psd.png')
-    elif layer.name == "177":
+    elif layer.name == "base":
         img_num_base = layer.numpy()
         img_base = layer.composite()
         break
+    # else:
+    #     print(layer.name ,'off' , layer.offset)
+    #     print(layer.size)
+# img_base = None
 if img_base is not None:
     img_num_base = np.array(img_base)  # imagebase转换成numpy格式
     gray_base = cv2.cvtColor(img_num_base, cv2.COLOR_RGBA2GRAY)
@@ -272,11 +286,20 @@ if img_base is not None:
     all_thresh1 = all_thresh.copy()  # 画椭圆的基础图
 
     base_h, base_w, baee_n = img_num_base.shape
-    for curlayer in psd:
+    dir = f"huidus{psd_name}"
+    if not os.path.exists(dir):
+        os.mkdir(dir)
+    filename = dir + "\coordinate"
+    f = open(filename, "w")
+    f.write(f"{round(base_w * px2cm, 3)},{round(base_h * px2cm, 3)}" + '\n')
+    for curlayer in reversed(psd):
         if curlayer.is_group():
             continue
         elif curlayer.name in layer_list:
-            img_mix = psd.composite(layer_filter= lambda layer: layer.name == curlayer.name or layer.name == '177') #or layer.name == '图层 0')
+            img_cur_mix = curlayer.composite()
+            img_cur_mix.save(f"huidus{psd_name}//mix_{curlayer.name}.png")
+
+            img_mix = psd.composite(layer_filter= lambda layer: layer.name == curlayer.name or layer.name == 'base') #or layer.name == '图层 0')
             img_num_mix = np.array(img_mix)
             # img_base.save('base_psd.png')
             # img_mix.save('mix_psd.png')
@@ -298,9 +321,13 @@ if img_base is not None:
 
             cnt = np.array(point_list)
 
-            minW = 300
+            minW = 350
             minH = 380
-            minR = 160
+            min_e_W = 350
+            min_e_H = 500
+            minR = 200
+            # px2cm = 1 / 28.35
+
             (r_x, r_y, r_w, r_h) = cv2.boundingRect(cnt)#普通外接矩形轮廓
             if r_w < r_h:
                 if r_w < minW:
@@ -328,7 +355,7 @@ if img_base is not None:
             r_y = int(r_y)
 
             rect = cv2.minAreaRect(cnt)#最小矩形轮廓
-            (center,(weight,height), angle) = rect
+            (r_center,(weight,height), angle) = rect
             old_weight,old_height = weight,height
 
 
@@ -343,13 +370,14 @@ if img_base is not None:
             else:
                 if height < minW: height = minW
                 if weight < minH: weight = minH
-            if e_a < minW: e_a = minW
-            if e_b < minH: e_b = minH
+            if e_a < min_e_W: e_a = min_e_W
+            if e_b < min_e_H: e_b = min_e_H
 
             sR = weight * height
-            rect = (center,(weight,height), angle)
+            r_c_x , r_c_y = r_center
+            rect = (r_center,(weight,height), angle)
             points = cv2.boxPoints(rect)
-            points = np.int0(points)  # 最小矩形轮廓
+            points = np.intp(points)  # 最小矩形轮廓
 
             retval = (e_x,e_y) , (e_a,e_b) , e_angle #椭圆轮廓
             sE = np.pi * e_a/2 * e_b/2 #椭圆面积
@@ -364,14 +392,15 @@ if img_base is not None:
                 r = minR
             centerCut = (r, r)
             sC = r * r * math.pi
+            out_path = f"huidus{psd_name}//mix_{curlayer.name}_frame.png"
 
-
-            out_path = f"huidus//mix_{curlayer.name}_frame.png"
+            f_c_x = 0
+            f_c_y = 0
 
             if sE < sR and sE < sC:
                 is_draw_min_ellipse = True
                 focus = get_focus((e_x, e_y), (e_a / 2, e_b / 2), e_angle)
-                p1,p2 = np.int0(focus)
+                p1,p2 = np.intp(focus)
                 print(curlayer.name,(e_x, e_y), (e_a, e_b), e_angle,focus)
                 for i in range(base_w):
                     if not is_draw_min_ellipse:
@@ -395,11 +424,15 @@ if img_base is not None:
                     cv2.ellipse(img_num_all_mix, retval, (95, 235, 95, 255), 26)  # 椭圆
                     draw_elliptic((int(e_a),int(e_b)),180 - int(e_angle), out_path) #切出椭圆
                     # print(curlayer.name,(e_x, e_y), (e_a, e_b), e_angle)
+                    f_c_x = e_x
+                    f_c_y = e_y
                 else:
                     cv2.rectangle(all_thresh, (r_x, r_y), (r_x + r_w, r_y + r_h), (95, 235, 95), 10)  # 画普通外接矩形
-                    cv2.rectangle(img_num_all_mix, (r_x, r_y), (r_x + r_w, r_y + r_h), (95, 235, 95), 10)  # 画外接矩形
+                    cv2.rectangle(img_num_all_mix, (r_x, r_y), (r_x + r_w, r_y + r_h), (95, 235, 95), 10)  # 画普通外接矩形
                     size = (int(r_w), int(r_h))
                     draw_rect(size, 0, out_path)  # 切出矩形
+                    f_c_x = r_x + r_w/2
+                    f_c_y = r_y + r_h/2
             elif sC <= sE and sC <= sR:
                 # print(curlayer.name,'画圆')
                 is_draw_min_circle = True
@@ -426,11 +459,14 @@ if img_base is not None:
                     imageCircle[:] = (0, 0, 0, 0)
                     cv2.circle(imageCircle, centerCut, r - 21, (95, 235, 95, 255), 42)  # 画每个抠图的圆边框
                     cv2.imwrite(out_path, imageCircle)
+                    f_c_x , f_c_y = center
                 else:
                     cv2.rectangle(all_thresh, (r_x, r_y), (r_x + r_w, r_y + r_h), (95, 235, 95), 10)  # 画普通外接矩形
                     cv2.rectangle(img_num_all_mix, (r_x, r_y), (r_x + r_w, r_y + r_h), (95, 235, 95), 10)  # 画外接矩形
                     size = (int(r_w), int(r_h))
                     draw_rect(size, 0, out_path)  # 切出矩形
+                    f_c_x = r_x + r_w / 2
+                    f_c_y = r_y + r_h / 2
             else:
                 # print(type([points][0]))
                 is_draw_min_rect = True
@@ -447,13 +483,22 @@ if img_base is not None:
                     size = (int(weight), int(height))
                     # out_path = f"huidus//mix_{curlayer.name}_frame.png"
                     draw_rect(size, 180 - int(angle), out_path) #切出矩形
+                    f_c_x = r_c_x + weight / 2
+                    f_c_y = r_c_y + height / 2
                 else:
                     cv2.rectangle(all_thresh, (r_x, r_y), (r_x + r_w, r_y + r_h), (95, 235, 95), 10)  # 画普通外接矩形
                     cv2.rectangle(img_num_all_mix, (r_x, r_y), (r_x + r_w, r_y + r_h), (95, 235, 95), 10)  # 画外接矩形
                     size = (int(r_w), int(r_h))
                     draw_rect(size, 0, out_path) #切出矩形
+                    f_c_x = r_x + r_w / 2
+                    f_c_y = r_y + r_h / 2
 
-
+            # filename = f"huidus{psd_name}//coordinate"
+            # f = open(filename, "w")
+            lt_x , lt_y = curlayer.offset
+            c_w , c_h = curlayer.size
+            c_x , c_y = lt_x + c_w/2 , lt_y + c_h/2
+            f.write(f"{curlayer.name}:{round(c_x * px2cm, 3)},{round(c_y * px2cm, 3)}:{round(f_c_x * px2cm, 3)},{round(f_c_y * px2cm, 3)}" + '\n')
             # cv2.circle(img_num_all_mix, center, r, (95, 235, 95, 255), 10)  # 圆
             # cv2.ellipse(img_num_all_mix, retval, (95, 235, 95, 255), 10)  # 椭圆
             # cv2.drawContours(img_num_all_mix, [points], 0, (95, 235, 95, 255), 10)  # 矩形
@@ -479,9 +524,9 @@ if img_base is not None:
             # cv2.imwrite("huidus//huidu111.png", thresh)
             # retval = cv2.moments(thresh.copy())
             # print(len(cnts))
-    cv2.imwrite(f"huidus//huiduoooo.png", all_thresh)
+    cv2.imwrite(f"huidus{psd_name}//huiduoooo.png", all_thresh)
     # cv2.imwrite(f"huidus//huidu1111.png", all_thresh1)
-    cv2.imwrite(f"huidus//mixoooo.png", img_num_all_mix)
+    cv2.imwrite(f"huidus{psd_name}//mixoooo.png", img_num_all_mix)
     img_png = psd.composite()
     # img_png.save('huidus//mix.png')
     # img_base.save('huidus//base.png')
