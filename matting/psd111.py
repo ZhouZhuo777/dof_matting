@@ -157,6 +157,9 @@ def draw_rect(size,angle, save_path):
     for x in range(new_width - thickness, new_width):
         for y in range(base_halfH, DH):
             img_new.putpixel((x, y), (95, 235, 95, 255))
+    cur_size_w, cur_size_h = img_new.size
+    cur_size_w, cur_size_h = cur_size_w / 2, cur_size_h / 2
+    img_new.thumbnail((cur_size_w, cur_size_h), resample=Image.LANCZOS)
     img = np.array(img_new)
     cv2.imwrite(save_path, rotate_image(img,angle))
     # img_new.save(save_path)
@@ -171,7 +174,10 @@ def draw_elliptic(size,angle, save_path):
     # shape = (size,4)
     # img = numpy.zeros(shape, dtype=float, order='C')
     cv2.ellipse(img, ((x/2,y/2),(new_width,new_height),0), (95, 235, 95, 255), thickness)  # 椭圆
-    cv2.imwrite(save_path, rotate_image(img,angle))
+    height, width = img.shape[:2]
+    resize = (int(width / 2), int(height / 2))
+    resize_img = cv2.resize(img, resize, interpolation=cv2.INTER_AREA)
+    cv2.imwrite(save_path, rotate_image(resize_img,angle))
 
 def get_focus(center_pos,size,angle): #获得椭圆焦点
     short,long = size
@@ -297,6 +303,11 @@ if img_base is not None:
             continue
         elif curlayer.name in layer_list:
             img_cur_mix = curlayer.composite()
+            cur_size_w , cur_size_h = img_cur_mix.size
+            cur_size_w, cur_size_h=  cur_size_w / 2, cur_size_h / 2
+            img_cur_mix.thumbnail((cur_size_w,cur_size_h),resample = Image.LANCZOS)
+            # img_cur_mix.resize(cur_size_w/2,cur_size_h/2)
+            # img_cur_mix.convert('RGB')
             img_cur_mix.save(f"huidus{psd_name}//mix_{curlayer.name}.png")
 
             img_mix = psd.composite(layer_filter= lambda layer: layer.name == curlayer.name or layer.name == 'base') #or layer.name == '图层 0')
@@ -458,7 +469,10 @@ if img_base is not None:
                     imageCircle = np.zeros((2 * r, 2 * r, 4))  # 创建opencv图像
                     imageCircle[:] = (0, 0, 0, 0)
                     cv2.circle(imageCircle, centerCut, r - 21, (95, 235, 95, 255), 42)  # 画每个抠图的圆边框
-                    cv2.imwrite(out_path, imageCircle)
+                    height, width = imageCircle.shape[:2]
+                    resize = (int(width / 2), int(height / 2))
+                    resize_img = cv2.resize(imageCircle, resize, interpolation=cv2.INTER_AREA)
+                    cv2.imwrite(out_path, resize_img)
                     f_c_x , f_c_y = center
                 else:
                     cv2.rectangle(all_thresh, (r_x, r_y), (r_x + r_w, r_y + r_h), (95, 235, 95), 10)  # 画普通外接矩形

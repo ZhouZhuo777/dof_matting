@@ -44,6 +44,20 @@ class DofPsdUI ( wx.Frame ):
 
 		sbSizer3.Add( sbSizer2, 1, wx.EXPAND, 5 )
 
+		sbSizer31 = wx.StaticBoxSizer( wx.StaticBox( sbSizer3.GetStaticBox(), wx.ID_ANY, wx.EmptyString ), wx.HORIZONTAL )
+
+
+		sbSizer31.Add( ( 0, 0), 1, wx.EXPAND, 5 )
+
+		self.m_checkBox2 = wx.CheckBox( sbSizer31.GetStaticBox(), wx.ID_ANY, u"是否生成灰度图", wx.DefaultPosition, wx.DefaultSize, 0 )
+		sbSizer31.Add( self.m_checkBox2, 0, wx.ALL, 5 )
+
+
+		sbSizer31.Add( ( 0, 0), 1, wx.EXPAND, 5 )
+
+
+		sbSizer3.Add( sbSizer31, 1, wx.EXPAND, 5 )
+
 
 		bSizer2.Add( sbSizer3, 1, wx.EXPAND, 5 )
 

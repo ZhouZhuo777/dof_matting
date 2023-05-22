@@ -705,7 +705,7 @@ class AutoMatting():
         img_new.save(save_path)
 
 class AutoMattingPSD():
-    def __init__(self, psd, outpath):
+    def __init__(self, psd, outpath , is_save_huidu):
         self.psd = psd
         # self.baseframepng = "G:\\img_lib/frame_base.png"
         self.minW = 350
@@ -717,6 +717,7 @@ class AutoMattingPSD():
         # self.px2cm = 1 / 28.35
         self.px2cm = 25.4 / 3000
         self.layer_list = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10']
+        self.is_save_mix_huidu_img = is_save_huidu
 
         from frame_base_png import img as frame_base
         tmp = open('frame_base.png', 'wb')
@@ -752,7 +753,8 @@ class AutoMattingPSD():
             img_num_base = np.array(img_base)  # imagebase转换成numpy格式
             gray_base = cv2.cvtColor(img_num_base, cv2.COLOR_RGBA2GRAY)
             img_png = psd.composite()
-            img_png.save(f'{outPutPath}base.png')
+
+
             img_num_all_mix = np.array(img_png)
             gray_all_mix = cv2.cvtColor(img_num_all_mix, cv2.COLOR_RGB2GRAY)
             # img_num_all_mix = img_num_base #在有不同点的图上画图
@@ -766,14 +768,24 @@ class AutoMattingPSD():
             filename = f"{outPutPath}coordinate"
             f = open(filename, "w")
             f.write(f"{round(base_w * self.px2cm, 3)},{round(base_h * self.px2cm, 3)}" + '\n')
-            # dir = self.psd_name
-            # if not os.path.exists(dir):
-            #     os.mkdir(dir)
+
+
+            # 保存base图片
+            resize_img_png = img_png
+            base_size_w, base_size_h = resize_img_png.size
+            base_size_w, base_size_h = base_size_w / 2, base_size_h / 2
+            resize_img_png.thumbnail((base_size_w, base_size_h), resample=Image.LANCZOS)  # 对base图片进行缩放
+            resize_img_png.save(f'{outPutPath}base.png')
+
+
             for curlayer in reversed(psd):
                 if curlayer.is_group():
                     continue
                 elif curlayer.name in self.layer_list:
                     img_cur_mix = curlayer.composite()
+                    cur_size_w, cur_size_h = img_cur_mix.size
+                    cur_size_w, cur_size_h = cur_size_w / 2, cur_size_h / 2
+                    img_cur_mix.thumbnail((cur_size_w, cur_size_h), resample=Image.LANCZOS)
                     img_cur_mix.save(f"{outPutPath}mix_{curlayer.name}.png")
 
                     img_mix = psd.composite(layer_filter=lambda
@@ -875,7 +887,6 @@ class AutoMattingPSD():
 
                         for i in range(base_w):
                             if not is_draw_min_ellipse:
-                                print(curlayer.name, "椭圆超出边界")
                                 break
                             pos0 = (i, 0)
                             pos1 = (i, 2000)
@@ -883,7 +894,6 @@ class AutoMattingPSD():
                                 is_draw_min_ellipse = False
                         for i in range(base_h):
                             if not is_draw_min_ellipse:
-                                print(curlayer.name, "椭圆超出边界")
                                 break
                             pos0 = (0, i)
                             pos1 = (3000, i)
@@ -910,7 +920,6 @@ class AutoMattingPSD():
                         is_draw_min_circle = True
                         for i in range(base_w):
                             if not is_draw_min_circle:
-                                print(curlayer.name, "圆超出边界")
                                 break
                             pos0 = (i, 0)
                             pos1 = (i, 2000)
@@ -918,7 +927,6 @@ class AutoMattingPSD():
                                 is_draw_min_circle = False
                         for i in range(base_h):
                             if not is_draw_min_circle:
-                                print(curlayer.name, "圆超出边界")
                                 break
                             pos0 = (0, i)
                             pos1 = (3000, i)
@@ -930,7 +938,10 @@ class AutoMattingPSD():
                             imageCircle = np.zeros((2 * r, 2 * r, 4))  # 创建opencv图像
                             imageCircle[:] = (0, 0, 0, 0)
                             cv2.circle(imageCircle, centerCut, r - 21, (95, 235, 95, 255), 42)  # 画每个抠图的圆边框
-                            cv2.imwrite(out_path, imageCircle)
+                            height, width = imageCircle.shape[:2]
+                            resize = (int(width / 2), int(height / 2))
+                            resize_img = cv2.resize(imageCircle, resize, interpolation=cv2.INTER_AREA)
+                            cv2.imwrite(out_path, resize_img)
                             f_c_x, f_c_y = center
                         else:
                             cv2.rectangle(all_thresh, (r_x, r_y), (r_x + r_w, r_y + r_h), (95, 235, 95), 10)  # 画普通外接矩形
@@ -971,7 +982,7 @@ class AutoMattingPSD():
                     c_x, c_y = lt_x + c_w / 2, lt_y + c_h / 2
                     f.write(
                         f"{curlayer.name}:{round(c_x * self.px2cm, 3)},{round(c_y * self.px2cm, 3)}:{round(f_c_x * self.px2cm, 3)},{round(f_c_y * self.px2cm, 3)}" + '\n')
-
+                    print(f'不同点 {curlayer.name} 处理完毕')
                     # cv2.circle(img_num_all_mix, center, r, (95, 235, 95, 255), 10)  # 圆
                     # cv2.ellipse(img_num_all_mix, retval, (95, 235, 95, 255), 10)  # 椭圆
                     # cv2.drawContours(img_num_all_mix, [points], 0, (95, 235, 95, 255), 10)  # 矩形
@@ -994,11 +1005,10 @@ class AutoMattingPSD():
 
                     # retval = cv2.moments(thresh.copy())
                     # print(len(cnts))
-            cv2.imwrite(f"{outPutPath}huidu.png", all_thresh)
-            # cv2.imwrite(f"{outPutPath}huidu1111.png", all_thresh1)
-            cv2.imwrite(f"{outPutPath}/mix.png", img_num_all_mix)
+            if(self.is_save_mix_huidu_img):
+                cv2.imwrite(f"{outPutPath}huidu.png", all_thresh)
+                cv2.imwrite(f"{outPutPath}/mix.png", img_num_all_mix)
             print(outPutPath + '处理完毕')
-            # img_png = psd.composite()
         else:
             print(outPutPath + 'base图不存在或没找到')
     def rotate_image(self,input_image, angle):
@@ -1100,6 +1110,10 @@ class AutoMattingPSD():
         for x in range(new_width - thickness, new_width):
             for y in range(base_halfH, DH):
                 img_new.putpixel((x, y), (95, 235, 95, 255))
+
+        cur_size_w, cur_size_h = img_new.size
+        cur_size_w, cur_size_h = cur_size_w / 2, cur_size_h / 2
+        img_new.thumbnail((cur_size_w, cur_size_h), resample=Image.LANCZOS)
         img = np.array(img_new)
         cv2.imwrite(save_path, self.rotate_image(img, angle))
         # img_new.save(save_path)
@@ -1115,7 +1129,11 @@ class AutoMattingPSD():
         # shape = (size,4)
         # img = numpy.zeros(shape, dtype=float, order='C')
         cv2.ellipse(img, ((x / 2, y / 2), (new_width, new_height), 0), (95, 235, 95, 255), thickness)  # 椭圆
-        cv2.imwrite(save_path, self.rotate_image(img, angle))
+
+        height,width = img.shape[:2]
+        resize = (int(width/2),int(height/2))
+        resize_img = cv2.resize(img,resize,interpolation = cv2.INTER_AREA)
+        cv2.imwrite(save_path, self.rotate_image(resize_img, angle))
 
     def get_focus(self,center_pos, size, angle):  # 获得椭圆焦点
         short, long = size

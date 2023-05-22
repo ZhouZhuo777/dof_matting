@@ -16,6 +16,7 @@ class w_frame(dof_psd_ui.DofPsdUI):
     def on_button_clicked(self, event):
         img_lib_path = self.m_textCtrl1.GetValue()
         libpath = Path(img_lib_path)
+        is_save_huidu = self.m_checkBox2
         if not libpath.is_dir():
             print("输入的路径不是一个文件夹")
         elif not libpath.exists():
@@ -27,7 +28,7 @@ class w_frame(dof_psd_ui.DofPsdUI):
             print(psd_path)
             dir_name =  psd.replace('.psd','')
             outPath = img_lib_path + f'/{dir_name}/'
-            mat = matting.AutoMattingPSD(psd= psd_path,outpath= outPath)
+            mat = matting.AutoMattingPSD(psd= psd_path,outpath= outPath,is_save_huidu=is_save_huidu)
             mat.play()
     def getAllPsd(self,path,key):
         res = []
