@@ -937,7 +937,7 @@ class AutoMattingPSD():
                             cv2.circle(img_num_all_mix, center, r, (95, 235, 95), 26)  # 画外接圆
                             imageCircle = np.zeros((2 * r, 2 * r, 4))  # 创建opencv图像
                             imageCircle[:] = (0, 0, 0, 0)
-                            cv2.circle(imageCircle, centerCut, r - 21, (95, 235, 95, 255), 42)  # 画每个抠图的圆边框
+                            cv2.circle(imageCircle, centerCut, r - 21, (95, 235, 95, 255), 26)  # 画每个抠图的圆边框
                             height, width = imageCircle.shape[:2]
                             resize = (int(width / 2), int(height / 2))
                             resize_img = cv2.resize(imageCircle, resize, interpolation=cv2.INTER_AREA)
