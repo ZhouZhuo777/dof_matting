@@ -771,11 +771,11 @@ class AutoMattingPSD():
 
 
             # 保存base图片
-            resize_img_png = img_png
-            base_size_w, base_size_h = resize_img_png.size
+            resize_img_base_png = img_base
+            base_size_w, base_size_h = resize_img_base_png.size
             base_size_w, base_size_h = base_size_w / 2, base_size_h / 2
-            resize_img_png.thumbnail((base_size_w, base_size_h), resample=Image.LANCZOS)  # 对base图片进行缩放
-            resize_img_png.save(f'{outPutPath}base.png')
+            resize_img_base_png.thumbnail((base_size_w, base_size_h), resample=Image.LANCZOS)  # 对base图片进行缩放
+            resize_img_base_png.save(f'{outPutPath}base.png')
 
 
             for curlayer in reversed(psd):
@@ -902,15 +902,14 @@ class AutoMattingPSD():
                         if is_draw_min_ellipse:
                             # cv2.line(img_num_all_mix,p1,p2,(95, 235, 95, 255), 10) #画出椭圆焦点连起来的线段
                             cv2.ellipse(all_thresh, retval, (95, 235, 95, 255), 26)  # 椭圆
-                            cv2.ellipse(img_num_all_mix, retval, (95, 235, 95, 255), 26)  # 椭圆
+                            cv2.ellipse(img_num_all_mix, retval, (255, 0, 0, 255), 26)  # 椭圆
                             self.draw_elliptic((int(e_a), int(e_b)), 180 - int(e_angle), out_path)  # 切出椭圆
                             # print(curlayer.name,(e_x, e_y), (e_a, e_b), e_angle)
                             f_c_x = e_x
                             f_c_y = e_y
                         else:
-                            cv2.rectangle(all_thresh, (r_x, r_y), (r_x + r_w, r_y + r_h), (95, 235, 95), 10)  # 画普通外接矩形
-                            cv2.rectangle(img_num_all_mix, (r_x, r_y), (r_x + r_w, r_y + r_h), (95, 235, 95),
-                                          10)  # 画外接矩形
+                            cv2.rectangle(all_thresh, (r_x, r_y), (r_x + r_w, r_y + r_h), (95, 235, 95), 26)  # 画普通外接矩形
+                            cv2.rectangle(img_num_all_mix, (r_x, r_y), (r_x + r_w, r_y + r_h), (127, 0, 0),26)  # 画外接矩形
                             size = (int(r_w), int(r_h))
                             self.draw_rect(size, 0, out_path)  # 切出矩形
                             f_c_x = r_x + r_w / 2
@@ -934,7 +933,7 @@ class AutoMattingPSD():
                                 is_draw_min_circle = False
                         if is_draw_min_circle:
                             cv2.circle(all_thresh, center, r, (95, 235, 95), 26)  # 画外接圆
-                            cv2.circle(img_num_all_mix, center, r, (95, 235, 95), 26)  # 画外接圆
+                            cv2.circle(img_num_all_mix, center, r, (0, 255, 0), 26)  # 画外接圆
                             imageCircle = np.zeros((2 * r, 2 * r, 4))  # 创建opencv图像
                             imageCircle[:] = (0, 0, 0, 0)
                             cv2.circle(imageCircle, centerCut, r - 21, (95, 235, 95, 255), 26)  # 画每个抠图的圆边框
@@ -944,9 +943,8 @@ class AutoMattingPSD():
                             cv2.imwrite(out_path, resize_img)
                             f_c_x, f_c_y = center
                         else:
-                            cv2.rectangle(all_thresh, (r_x, r_y), (r_x + r_w, r_y + r_h), (95, 235, 95), 10)  # 画普通外接矩形
-                            cv2.rectangle(img_num_all_mix, (r_x, r_y), (r_x + r_w, r_y + r_h), (95, 235, 95),
-                                          10)  # 画外接矩形
+                            cv2.rectangle(all_thresh, (r_x, r_y), (r_x + r_w, r_y + r_h), (95, 235, 95), 26)  # 画普通外接矩形
+                            cv2.rectangle(img_num_all_mix, (r_x, r_y), (r_x + r_w, r_y + r_h), (0, 127, 0),26)  # 画外接矩形
                             size = (int(r_w), int(r_h))
                             self.draw_rect(size, 0, out_path)  # 切出矩形
                             f_c_x = r_x + r_w / 2
@@ -963,15 +961,14 @@ class AutoMattingPSD():
                                 break
                         if is_draw_min_rect:
                             cv2.drawContours(all_thresh, [points], 0, (95, 235, 95, 255), 26)  # 最小矩形
-                            cv2.drawContours(img_num_all_mix, [points], 0, (95, 235, 95, 255), 26)  # 最小矩形
+                            cv2.drawContours(img_num_all_mix, [points], 0, (0, 0, 255, 255), 26)  # 最小矩形
                             size = (int(weight), int(height))
                             self.draw_rect(size, 180 - int(angle), out_path)  # 切出矩形
-                            f_c_x = r_c_x + weight / 2
-                            f_c_y = r_c_y + height / 2
+                            f_c_x = r_c_x# + weight / 2
+                            f_c_y = r_c_y# + height / 2
                         else:
-                            cv2.rectangle(all_thresh, (r_x, r_y), (r_x + r_w, r_y + r_h), (95, 235, 95), 10)  # 画普通外接矩形
-                            cv2.rectangle(img_num_all_mix, (r_x, r_y), (r_x + r_w, r_y + r_h), (95, 235, 95),
-                                          10)  # 画外接矩形
+                            cv2.rectangle(all_thresh, (r_x, r_y), (r_x + r_w, r_y + r_h), (95, 235, 95), 26)  # 画普通外接矩形
+                            cv2.rectangle(img_num_all_mix, (r_x, r_y), (r_x + r_w, r_y + r_h), (0, 0, 255),26)  # 画外接矩形
                             size = (int(r_w), int(r_h))
                             self.draw_rect(size, 0, out_path)  # 切出矩形
                             f_c_x = r_x + r_w / 2
