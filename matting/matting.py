@@ -1,5 +1,6 @@
 import base64
 
+import PIL
 from psd_tools import PSDImage
 
 
@@ -718,6 +719,7 @@ class AutoMattingPSD():
         self.px2cm = 25.4 / 3000
         self.layer_list = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10']
         self.is_save_mix_huidu_img = is_save_huidu
+        self.green_color = (95, 235, 95, 255)
 
         from frame_base_png import img as frame_base
         tmp = open('frame_base.png', 'wb')
@@ -843,8 +845,8 @@ class AutoMattingPSD():
 
                     (e_x, e_y), (e_a, e_b), e_angle = cv2.fitEllipse(
                         cnt)  # 椭圆轮廓 x, y）代表椭圆中心点的位置（a, b）代表长短轴长度，应注意a、b为长短轴的直径，而非半径 angle 代表了中心旋转的角度
-                    e_a = 1.15 * e_a  # 短轴
-                    e_b = 1.15 * e_b  # 长轴
+                    e_a = 1.19 * e_a  # 短轴
+                    e_b = 1.19 * e_b  # 长轴
 
                     if weight < height:
                         if weight < self.minW: weight = self.minW
@@ -870,7 +872,7 @@ class AutoMattingPSD():
                     oldr = r
                     if r < self.minR:
                         r = self.minR
-                    centerCut = (r, r)
+                    centerCut = (r + 14, r + 14)
                     sC = r * r * math.pi
 
                     out_path = f"{outPutPath}mix_{curlayer.name}_frame.png"
@@ -934,13 +936,14 @@ class AutoMattingPSD():
                         if is_draw_min_circle:
                             cv2.circle(all_thresh, center, r, (95, 235, 95), 26)  # 画外接圆
                             cv2.circle(img_num_all_mix, center, r, (0, 255, 0), 26)  # 画外接圆
-                            imageCircle = np.zeros((2 * r, 2 * r, 4))  # 创建opencv图像
-                            imageCircle[:] = (0, 0, 0, 0)
-                            cv2.circle(imageCircle, centerCut, r - 21, (95, 235, 95, 255), 26)  # 画每个抠图的圆边框
-                            height, width = imageCircle.shape[:2]
-                            resize = (int(width / 2), int(height / 2))
-                            resize_img = cv2.resize(imageCircle, resize, interpolation=cv2.INTER_AREA)
-                            cv2.imwrite(out_path, resize_img)
+                            self.draw_circle(r,centerCut,out_path)
+                            # imageCircle = np.zeros((2 * r, 2 * r, 4))  # 创建opencv图像
+                            # imageCircle[:] = (0, 0, 0, 0)
+                            # cv2.circle(imageCircle, centerCut, r - 13, (95, 235, 95, 255), 26)  # 画每个抠图的圆边框
+                            # height, width = imageCircle.shape[:2]
+                            # resize = (int(width / 2), int(height / 2))
+                            # resize_img = cv2.resize(imageCircle, resize, interpolation=cv2.INTER_AREA)
+                            # cv2.imwrite(out_path, resize_img)
                             f_c_x, f_c_y = center
                         else:
                             cv2.rectangle(all_thresh, (r_x, r_y), (r_x + r_w, r_y + r_h), (95, 235, 95), 26)  # 画普通外接矩形
@@ -1125,12 +1128,49 @@ class AutoMattingPSD():
         x, y = new_size
         # shape = (size,4)
         # img = numpy.zeros(shape, dtype=float, order='C')
-        cv2.ellipse(img, ((x / 2, y / 2), (new_width, new_height), 0), (95, 235, 95, 255), thickness)  # 椭圆
+        cv2.ellipse(img, ((x / 2, y / 2), (new_width, new_height), 0), (95, 235, 95, 255), thickness,cv2.LINE_AA)  # 椭圆
 
         height,width = img.shape[:2]
         resize = (int(width/2),int(height/2))
-        resize_img = cv2.resize(img,resize,interpolation = cv2.INTER_AREA)
-        cv2.imwrite(save_path, self.rotate_image(resize_img, angle))
+        resize_img = cv2.resize(img,resize,interpolation = cv2.INTER_LINEAR) #INTER_NEARAST INTER_LINEAR INTER_AREA INTER_CUBIC INTER_LANCZOS4
+        rotate_npary_img = self.rotate_image(resize_img, angle)
+        rotate_pil_img = PIL.Image.fromarray(rotate_npary_img)
+        w,h = rotate_pil_img.size
+        # for wi in range(0,w):
+        #     for he in range(0,h):
+        #         pix_color = rotate_pil_img.getpixel((wi,he))
+        #         if not (pix_color == self.green_color or pix_color == (0,0,0,0)):
+        #             if pix_color[3] > 0:
+        #                 rotate_pil_img.putpixel((wi,he),self.green_color)
+        #             else:
+        #                 rotate_pil_img.putpixel((wi,he),(0,0,0,0))
+        rotate_pil_img.save(save_path)
+        # cv2.imwrite(save_path, rotate_npary_img)
+
+    def draw_circle(self, r, centerCut, out_path):
+        # imageCircle = np.zeros((2 * r, 2 * r, 4))  # 创建opencv图像
+        # imageCircle[:] = (0, 0, 0, 0)
+        print("draw_circle")
+        new_size = (r*2 +28, r*2 +28)
+        img_new = Image.new('RGBA', new_size)
+        img = np.array(img_new)
+
+        cv2.circle(img, centerCut, r , (95, 235, 95, 255), 26, cv2.LINE_AA)  # 画每个抠图的圆边框
+        height, width = img.shape[:2]
+        resize = (int(width / 2), int(height / 2))
+        resize_img = cv2.resize(img, resize, interpolation=cv2.INTER_LINEAR)
+        # cv2.imwrite(out_path, resize_img)
+        pil_img = PIL.Image.fromarray(resize_img)
+        w, h = pil_img.size
+        # for wi in range(0, w):
+        #     for he in range(0, h):
+        #         pix_color = pil_img.getpixel((wi, he))
+        #         if not (pix_color == self.green_color or pix_color == (0, 0, 0, 0)):
+        #             if pix_color[3] > 0:
+        #                 pil_img.putpixel((wi, he), self.green_color)
+        #             else:
+        #                 pil_img.putpixel((wi, he), (0, 0, 0, 0))
+        pil_img.save(out_path)
 
     def get_focus(self,center_pos, size, angle):  # 获得椭圆焦点
         short, long = size
