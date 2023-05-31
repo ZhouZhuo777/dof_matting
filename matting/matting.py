@@ -720,6 +720,7 @@ class AutoMattingPSD():
         self.layer_list = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10']
         self.is_save_mix_huidu_img = is_save_huidu
         self.green_color = (95, 235, 95, 255)
+        self.color = (95, 235, 95)
 
         from frame_base_png import img as frame_base
         tmp = open('frame_base.png', 'wb')
@@ -1136,14 +1137,18 @@ class AutoMattingPSD():
         rotate_npary_img = self.rotate_image(resize_img, angle)
         rotate_pil_img = PIL.Image.fromarray(rotate_npary_img)
         w,h = rotate_pil_img.size
-        # for wi in range(0,w):
-        #     for he in range(0,h):
-        #         pix_color = rotate_pil_img.getpixel((wi,he))
-        #         if not (pix_color == self.green_color or pix_color == (0,0,0,0)):
-        #             if pix_color[3] > 0:
-        #                 rotate_pil_img.putpixel((wi,he),self.green_color)
-        #             else:
-        #                 rotate_pil_img.putpixel((wi,he),(0,0,0,0))
+        r,g,b = self.color
+        for wi in range(0,w):
+            for he in range(0,h):
+                pix_color = rotate_pil_img.getpixel((wi,he))
+                # r, g, b,a = pix_color
+                alpha = pix_color[3]
+                if not (pix_color == self.green_color or alpha == 0):
+                    # if pix_color[3] > 0:
+                    rotate_pil_img.putpixel((wi,he),(r,g,b,alpha))#消除锯齿
+                    # rotate_pil_img.putpixel((wi,he),(r,g,b,255))
+                    # else:
+                    #     rotate_pil_img.putpixel((wi,he),(0,0,0,0))
         rotate_pil_img.save(save_path)
         # cv2.imwrite(save_path, rotate_npary_img)
 
@@ -1162,14 +1167,18 @@ class AutoMattingPSD():
         # cv2.imwrite(out_path, resize_img)
         pil_img = PIL.Image.fromarray(resize_img)
         w, h = pil_img.size
-        # for wi in range(0, w):
-        #     for he in range(0, h):
-        #         pix_color = pil_img.getpixel((wi, he))
-        #         if not (pix_color == self.green_color or pix_color == (0, 0, 0, 0)):
-        #             if pix_color[3] > 0:
-        #                 pil_img.putpixel((wi, he), self.green_color)
-        #             else:
-        #                 pil_img.putpixel((wi, he), (0, 0, 0, 0))
+        r,g,b = self.color
+        for wi in range(0, w):
+            for he in range(0, h):
+                pix_color = pil_img.getpixel((wi, he))
+                alpha = pix_color[3]
+                if not (pix_color == self.green_color or alpha == 0):
+                    pil_img.putpixel((wi,he),(r,g,b,alpha))#消除锯齿
+
+                    # if pix_color[3] > 0:
+                    #     pil_img.putpixel((wi, he), self.green_color)
+                    # else:
+                    #     pil_img.putpixel((wi, he), (0, 0, 0, 0))
         pil_img.save(out_path)
 
     def get_focus(self,center_pos, size, angle):  # 获得椭圆焦点
