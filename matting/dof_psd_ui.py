@@ -35,7 +35,7 @@ class DofPsdUI ( wx.Frame ):
 
 		sbSizer2.Add( self.m_staticText1, 0, wx.ALL, 5 )
 
-		self.m_textCtrl1 = wx.TextCtrl( sbSizer2.GetStaticBox(), wx.ID_ANY, u"G:\\psd_lib", wx.Point( -1,-1 ), wx.Size( 300,-1 ), 0 )
+		self.m_textCtrl1 = wx.TextCtrl( sbSizer2.GetStaticBox(), wx.ID_ANY, u"G:\\psd_lib\\tttt", wx.Point( -1,-1 ), wx.Size( 300,-1 ), 0 )
 		sbSizer2.Add( self.m_textCtrl1, 0, wx.ALL, 5 )
 
 
@@ -49,7 +49,7 @@ class DofPsdUI ( wx.Frame ):
 
 		sbSizer31.Add( ( 0, 0), 1, wx.EXPAND, 5 )
 
-		self.m_checkBox2 = wx.CheckBox( sbSizer31.GetStaticBox(), wx.ID_ANY, u"是否生成灰度图", wx.DefaultPosition, wx.DefaultSize, 0 )
+		self.m_checkBox2 = wx.CheckBox( sbSizer31.GetStaticBox(), wx.ID_ANY, u"是否生成灰度图和带框原图", wx.DefaultPosition, wx.DefaultSize, 0 )
 		sbSizer31.Add( self.m_checkBox2, 0, wx.ALL, 5 )
 
 
