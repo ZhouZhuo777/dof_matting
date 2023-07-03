@@ -5,6 +5,7 @@ from PIL import Image
 import math
 import operator
 from functools import reduce
+from shapely.geometry import  Point, LineString, Polygon
 
 # -*- coding: utf-8 -*-
 from skimage.metrics import structural_similarity
@@ -21,8 +22,15 @@ import cv2
 import os
 from pathlib import Path
 import numpy as np
+from enum import Enum
+
+class EDrawType(Enum):
+    rect = 1
+    circle = 2
+    elliptic = 3
 
 class AutoMattingPSD():
+
     def __init__(self, psd, outpath , is_save_huidu , psd_name):
         self.psd = psd
         # self.baseframepng = "G:\\img_lib/frame_base.png"
@@ -46,6 +54,7 @@ class AutoMattingPSD():
         tmp.write(base64.b64decode(frame_base))
         tmp.close()
         self.baseframepng = "frame_base.png"
+        self.draw_type_dic = dict()
 
     def play(self):
         print("开始处理：" + self.outpath)
@@ -93,7 +102,6 @@ class AutoMattingPSD():
             filename = f"{outPutPath}coordinate"
             f = open(filename, "w")
             f.write(f"{round(base_w * self.px2cm, 3)},{round(base_h * self.px2cm, 3)}" + '\n')
-
 
             # 保存base图片
             resize_img_base_png = img_base
@@ -202,6 +210,9 @@ class AutoMattingPSD():
                     f_c_x = 0
                     f_c_y = 0
 
+                    cur_draw_type = EDrawType.rect
+                    cur_draw_parameter = []
+
                     if sE < sR and sE < sC:
                         is_draw_min_ellipse = True
                         focus = self.get_focus((e_x, e_y), (e_a / 2, e_b / 2), e_angle)
@@ -232,6 +243,8 @@ class AutoMattingPSD():
                             # print(curlayer.name,(e_x, e_y), (e_a, e_b), e_angle)
                             f_c_x = e_x
                             f_c_y = e_y
+
+                            cur_draw_type = EDrawType.elliptic
                         else:
                             cv2.rectangle(all_thresh, (r_x, r_y), (r_x + r_w, r_y + r_h), (95, 235, 95), 26)  # 画普通外接矩形
                             cv2.rectangle(img_num_all_mix, (r_x, r_y), (r_x + r_w, r_y + r_h), (127, 0, 0),26)  # 画外接矩形
@@ -239,6 +252,9 @@ class AutoMattingPSD():
                             self.draw_rect(size, 0, out_path)  # 切出矩形
                             f_c_x = r_x + r_w / 2
                             f_c_y = r_y + r_h / 2
+
+                            cur_draw_type = EDrawType.rect
+                            cur_draw_parameter = [(r_x, r_y),(r_x + r_w, r_y),(r_x ,r_y+ r_h),(r_x + r_w ,r_y+ r_h)]
                     elif sC <= sE and sC <= sR:
                         # print(curlayer.name,'画圆')
                         is_draw_min_circle = True
@@ -268,6 +284,8 @@ class AutoMattingPSD():
                             # resize_img = cv2.resize(imageCircle, resize, interpolation=cv2.INTER_AREA)
                             # cv2.imwrite(out_path, resize_img)
                             f_c_x, f_c_y = center
+
+                            cur_draw_type = EDrawType.circle
                         else:
                             cv2.rectangle(all_thresh, (r_x, r_y), (r_x + r_w, r_y + r_h), (95, 235, 95), 26)  # 画普通外接矩形
                             cv2.rectangle(img_num_all_mix, (r_x, r_y), (r_x + r_w, r_y + r_h), (0, 127, 0),26)  # 画外接矩形
@@ -275,6 +293,10 @@ class AutoMattingPSD():
                             self.draw_rect(size, 0, out_path)  # 切出矩形
                             f_c_x = r_x + r_w / 2
                             f_c_y = r_y + r_h / 2
+
+                            cur_draw_type = EDrawType.rect
+                            cur_draw_parameter = [(r_x, r_y), (r_x + r_w, r_y), (r_x, r_y + r_h),
+                                                  (r_x + r_w, r_y + r_h)]
                     else:
                         # print(type([points][0]))
                         is_draw_min_rect = True
@@ -292,6 +314,9 @@ class AutoMattingPSD():
                             self.draw_rect(size, 180 - int(angle), out_path)  # 切出矩形
                             f_c_x = r_c_x# + weight / 2
                             f_c_y = r_c_y# + height / 2
+
+                            cur_draw_type = EDrawType.rect
+                            cur_draw_parameter = [points]
                         else:
                             cv2.rectangle(all_thresh, (r_x, r_y), (r_x + r_w, r_y + r_h), (95, 235, 95), 26)  # 画普通外接矩形
                             cv2.rectangle(img_num_all_mix, (r_x, r_y), (r_x + r_w, r_y + r_h), (0, 0, 255),26)  # 画外接矩形
@@ -299,6 +324,30 @@ class AutoMattingPSD():
                             self.draw_rect(size, 0, out_path)  # 切出矩形
                             f_c_x = r_x + r_w / 2
                             f_c_y = r_y + r_h / 2
+                            cur_draw_type = EDrawType.rect
+                            # cur_draw_parameter = ((r_x, r_y),(r_x + r_w, r_y + r_h),0)
+                            cur_draw_parameter = [(r_x, r_y), (r_x + r_w, r_y), (r_x, r_y + r_h),
+                                                  (r_x + r_w, r_y + r_h)]
+                    is_crosse = False
+                    for frame in self.draw_type_dic.items():
+                        if(cur_draw_type == EDrawType.rect and frame[1] == EDrawType.rect):
+                            is_crosse = self.rect_with_rect_is_corssed(frame[0],cur_draw_parameter,frame[0])
+                        elif (cur_draw_type == EDrawType.rect and frame[1] == EDrawType.circle):
+                            is_crosse = self.rect_with_circle_is_corssed(frame[0],cur_draw_parameter)
+                        elif (cur_draw_type == EDrawType.rect and frame[1] == EDrawType.elliptic):
+                            is_crosse = self.rect_with_elliptic_is_corssed(frame[0],cur_draw_parameter)
+                        elif (cur_draw_type == EDrawType.circle and frame[1] == EDrawType.circle):
+                            is_crosse = self.circle_with_circle_is_corssed(frame[0],cur_draw_parameter)
+                        elif (cur_draw_type == EDrawType.circle and frame[1] == EDrawType.elliptic):
+                            is_crosse = self.circle_with_elliptic_is_corssed(frame[0],cur_draw_parameter)
+                        elif (cur_draw_type == EDrawType.elliptic and frame[1] == EDrawType.elliptic):
+                            is_crosse = self.elliptic_with_elliptic_is_corssed(frame[0],cur_draw_parameter)
+                    if is_crosse:
+                        print("有交叉")
+                    if cur_draw_type in self.draw_type_dic.keys():
+                        print("含有相同参数的边框图案")
+                    self.draw_type_dic[cur_draw_parameter] = cur_draw_type
+
 
                     lt_x, lt_y = curlayer.offset
                     c_w, c_h = curlayer.size
@@ -541,3 +590,18 @@ class AutoMattingPSD():
         dx = x1 - x2
         dy = y1 - y2
         return math.pow(dx * dx + dy * dy, 0.5)
+
+    def rect_with_rect_is_corssed(self,cur_rect,rect):
+        rect_polygon = Polygon(rect)
+        cur_rect_polygon = Polygon(cur_rect)
+        return rect_polygon.intersects(cur_rect_polygon)
+    def rect_with_circle_is_corssed(self):
+        print(1)
+    def rect_with_elliptic_is_corssed(self):
+        print(1)
+    def circle_with_circle_is_corssed(self):
+        print(1)
+    def circle_with_elliptic_is_corssed(self):
+        print(1)
+    def elliptic_with_elliptic_is_corssed(self):
+        print(1)
