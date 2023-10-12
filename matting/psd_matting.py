@@ -441,9 +441,8 @@ class AutoMattingPSD():
                                 points = np.intp(points)  # 最小矩形轮廓
                                 temp_points = np.intp(cv2.boxPoints(temp_rect))
                                 cur_rect_points = (
-                                (points[0][0], points[0][1]), (points[1][0], points[1][1]), (points[2][0], points[2][1]),(points[3][0], points[3][1]),
-                                (temp_points[0][0], temp_points[0][1]), (temp_points[1][0], temp_points[1][1]), (temp_points[2][0], temp_points[2][1]),(temp_points[3][0], temp_points[3][1])
-                                )
+                                    ((points[0][0], points[0][1]), (points[1][0], points[1][1]), (points[2][0], points[2][1]),(points[3][0], points[3][1])),
+                                    ((temp_points[0][0], temp_points[0][1]), (temp_points[1][0], temp_points[1][1]), (temp_points[2][0], temp_points[2][1]),(temp_points[3][0], temp_points[3][1])))
                                 cur_draw_parameter = (cur_rect_points)
 
                             cur_draw_parameter = (cur_rect_points)
@@ -486,8 +485,8 @@ class AutoMattingPSD():
                             # cur_draw_parameter = ((r_x, r_y), (r_x + r_w, r_y), (r_x, r_y + r_h),
                             #                       (r_x + r_w, r_y + r_h))
                             is_crosse = self.is_crossed(cur_draw_type,cur_draw_parameter)
-                        cur_draw_parameter = ((r_x, r_y), (r_x + r_w, r_y), (r_x, r_y + r_h),
-                                              (r_x + r_w, r_y + r_h))
+                        # cur_draw_parameter = ((r_x, r_y), (r_x + r_w, r_y), (r_x, r_y + r_h),
+                        #                       (r_x + r_w, r_y + r_h))
                     if cur_draw_type in self.draw_type_dic.keys():
                         print("含有相同参数的边框图案")
                     self.draw_type_dic[cur_draw_parameter] = cur_draw_type
