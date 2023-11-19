@@ -153,6 +153,7 @@ class AutoMattingPSD():
 
 
 
+                    # 普通外接矩形轮廓
                     (r_x, r_y, r_w, r_h) = cv2.boundingRect(cnt)  # 普通外接矩形轮廓
                     self.rect_minW = r_w
                     self.rect_minH = r_h
@@ -181,19 +182,11 @@ class AutoMattingPSD():
                     r_x = int(r_x)
                     r_y = int(r_y)
 
+
+                    # 最小矩形轮廓
                     rect = cv2.minAreaRect(cnt)  # 最小矩形轮廓
                     (r_center, (weight, height), angle) = rect
                     self.min_rect_minW, self.min_rect_minH = weight, height
-
-
-
-                    (e_x, e_y), (e_a, e_b), e_angle = cv2.fitEllipse(
-                        cnt)  # 椭圆轮廓 x, y）代表椭圆中心点的位置（a, b）代表长短轴长度，应注意a、b为长短轴的直径，而非半径  angle 代表了中心旋转的角度值
-                    e_a = 1.19 * e_a  # 短轴
-                    e_b = 1.19 * e_b  # 长轴
-
-                    self.elliptic_e_W = e_a
-                    self.elliptic_e_H = e_b
 
                     if weight < height:
                         if weight < self.minW: weight = self.minW
@@ -201,9 +194,6 @@ class AutoMattingPSD():
                     else:
                         if height < self.minW: height = self.minW
                         if weight < self.minH: weight = self.minH
-                    if e_a < self.min_e_W: e_a = self.min_e_W
-                    if e_b < self.min_e_H: e_b = self.min_e_H
-
                     sR = weight * height
                     r_c_x , r_c_y = r_center
                     rect = (r_center, (weight, height), angle)
@@ -213,9 +203,21 @@ class AutoMattingPSD():
                     points = np.intp(points)  # 最小矩形轮廓
                     temp_points = np.intp(temp_points)
 
+                    # 椭圆轮廓
+                    (e_x, e_y), (e_a, e_b), e_angle = cv2.fitEllipse(
+                        cnt)  # 椭圆轮廓 x, y）代表椭圆中心点的位置（a, b）代表长短轴长度，应注意a、b为长短轴的直径，而非半径  angle 代表了中心旋转的角度值
+                    e_a = 1.19 * e_a  # 短轴
+                    e_b = 1.19 * e_b  # 长轴
+
+                    self.elliptic_e_W = e_a
+                    self.elliptic_e_H = e_b
+                    if e_a < self.min_e_W: e_a = self.min_e_W
+                    if e_b < self.min_e_H: e_b = self.min_e_H
                     retval = (e_x, e_y), (e_a, e_b), e_angle  # 椭圆轮廓
                     sE = np.pi * e_a / 2 * e_b / 2  # 椭圆面积
 
+
+                    # 圆轮廓
                     (c_x, c_y), radius = cv2.minEnclosingCircle(cnt)  # 圆轮廓
                     center = (int(c_x), int(c_y))
                     r = int(radius)
@@ -226,9 +228,9 @@ class AutoMattingPSD():
                     sC = r * r * math.pi
 
                     out_path = f"{self.mix_outpath}mix_{curlayer.name}_frame.png"
+
                     f_c_x = 0
                     f_c_y = 0
-
                     cur_draw_type = EDrawType.rect
                     cur_draw_parameter = ()
 
