@@ -58,3 +58,6 @@ print(rect_test.area)
 print(rect_test)
 # 2072 887 200
 # 2036.83 584.82   175 299.61    89.58
+
+ii = 1.01
+print(format(ii,'.3f'))

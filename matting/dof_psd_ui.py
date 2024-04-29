@@ -49,7 +49,7 @@ class DofPsdUI ( wx.Frame ):
 
 		sbSizer31.Add( ( 0, 0), 1, wx.EXPAND, 5 )
 
-		self.m_checkBox2 = wx.CheckBox( sbSizer31.GetStaticBox(), wx.ID_ANY, u"是否生成灰度图和带框原图", wx.DefaultPosition, wx.DefaultSize, 0 )
+		self.m_checkBox2 = wx.CheckBox( sbSizer31.GetStaticBox(), wx.ID_ANY, u"是否生成灰度图和原图", wx.DefaultPosition, wx.DefaultSize, 0 )
 		sbSizer31.Add( self.m_checkBox2, 0, wx.ALL, 5 )
 
 
@@ -72,6 +72,13 @@ class DofPsdUI ( wx.Frame ):
 		self.m_button5.SetBackgroundColour( wx.SystemSettings.GetColour( wx.SYS_COLOUR_INFOBK ) )
 
 		bSizer4.Add( self.m_button5, 0, wx.ALL, 5 )
+
+		self.m_button51 = wx.Button( self, wx.ID_ANY, u"只导出资源", wx.Point( -1,-1 ), wx.Size( 120,50 ), 0 )
+		self.m_button51.SetFont( wx.Font( 9, wx.FONTFAMILY_MODERN, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD, False, "黑体" ) )
+		self.m_button51.SetForegroundColour( wx.SystemSettings.GetColour( wx.SYS_COLOUR_CAPTIONTEXT ) )
+		self.m_button51.SetBackgroundColour( wx.SystemSettings.GetColour( wx.SYS_COLOUR_INFOBK ) )
+
+		bSizer4.Add( self.m_button51, 0, wx.ALL, 5 )
 
 
 		bSizer4.Add( ( 0, 0), 1, wx.EXPAND, 5 )

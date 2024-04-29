@@ -67,6 +67,9 @@ class AutoMattingPSD():
         self.baseframepng = "frame_base.png"
         self.draw_type_dic = dict()
 
+        self.all_mix_name = {'1', '2', '3', '4', '5', '6', '7', '8', '9', '10'}
+        self.all_frame_name = {'11', '22', '33', '44', '55', '66', '77', '88', '99', '1010'}
+
     def play(self):
         print("开始处理：" + self.outpath)
         outPutPath = self.outpath
@@ -111,7 +114,7 @@ class AutoMattingPSD():
 
             filename = f"{outPutPath}coordinate"
             f = open(filename, "w")
-            f.write(f"{round(base_w * self.px2cm, 3)},{round(base_h * self.px2cm, 3)}" + '\n')
+            f.write(f"{format(base_w * self.px2cm, '.3f')},{format(base_h * self.px2cm, '.3f')}" + '\n')
 
             # 保存base图片
             resize_img_base_png = img_base
@@ -362,11 +365,12 @@ class AutoMattingPSD():
                             cur_draw_type = EDrawType.min_rect
                             # print(points)
                             cur_rect_points = (
-                            (points[0][0], points[0][1]), (points[1][0], points[1][1]), (points[2][0], points[2][1]),
-                            (points[3][0], points[3][1]))
+                                (points[0][0], points[0][1]), (points[1][0], points[1][1]),
+                                (points[2][0], points[2][1]),
+                                (points[3][0], points[3][1]))
                             temp_rect_points = (
-                            (temp_points[0][0], temp_points[0][1]), (temp_points[1][0], temp_points[1][1]),
-                            (temp_points[2][0], temp_points[2][1]), (temp_points[3][0], temp_points[3][1]))
+                                (temp_points[0][0], temp_points[0][1]), (temp_points[1][0], temp_points[1][1]),
+                                (temp_points[2][0], temp_points[2][1]), (temp_points[3][0], temp_points[3][1]))
                             cur_draw_parameter = (cur_rect_points, temp_rect_points)
                         else:
                             # 直接画矩形
@@ -528,7 +532,7 @@ class AutoMattingPSD():
                     c_w, c_h = curlayer.size
                     c_x, c_y = lt_x + c_w / 2, lt_y + c_h / 2
                     f.write(
-                        f"{curlayer.name}:{round(c_x * self.px2cm, 3)},{round(c_y * self.px2cm, 3)}:{round(f_c_x * self.px2cm, 3)},{round(f_c_y * self.px2cm, 3)}" + '\n')
+                        f"{curlayer.name}:{format(c_x * self.px2cm, '.3f')},{format(c_y * self.px2cm, '.3f')}:{format(f_c_x * self.px2cm, '.3f')},{format(f_c_y * self.px2cm, '.3f')}" + '\n')
                     print(f'不同点 {curlayer.name} 处理完毕')
                     # cv2.circle(img_num_all_mix, center, r, (95, 235, 95, 255), 10)  # 圆
                     # cv2.ellipse(img_num_all_mix, retval, (95, 235, 95, 255), 10)  # 椭圆
@@ -849,7 +853,6 @@ class AutoMattingPSD():
         return cur_ellipse1.intersects(ellipse1)
 
     def only_export(self):
-        print("开始处理：" + self.outpath)
         out_put_path = self.outpath
         a = Path(out_put_path)
         a.mkdir(exist_ok=True)
@@ -864,31 +867,45 @@ class AutoMattingPSD():
         # base_h, base_w, baee_n = img_num_base.shape
         filename = f"{out_put_path}coordinate"
         f = open(filename, "w")
-        # f.write(f"{round(base_w * self.px2cm, 3)},{round(base_h * self.px2cm, 3)}" + '\n')
-        f.write(f"{round(psd.width * self.px2cm, 3)},{round(psd.height * self.px2cm, 3)}" + '\n')
+        f.write(f"{format(psd.width * self.px2cm, '.3f')},{format(psd.height * self.px2cm, '.3f')}" + '\n')
         mix_frame_xy = {}
         layer_count = 0
         for curlayer in psd:
-            # if curlayer.is_group():
-            #     for baselayer in curlayer:
-            #         if baselayer.name == "base":
-            #             img_num_base = baselayer.numpy()
-            #             img_base = baselayer.composite()
-            # elif curlayer.name == "base":
-            #     img_num_base = curlayer.numpy()
-            #     img_base = curlayer.composite()
-            if curlayer.name != "base" and not (curlayer.is_group()):
+            if curlayer.is_group():
+                for baselayer in curlayer:
+                    if baselayer.name == "base":
+                        img_base = baselayer.composite()
+                        size_w, size_h = img_base.size
+                        size_w, size_h = size_w / 2, size_h / 2
+                        img_base.thumbnail((size_w, size_h), resample=Image.LANCZOS)  # 对base图片进行缩放
+                        img_base.save(f"{out_put_path}base.png")
+            elif curlayer.name == "base":
+                img_base = curlayer.composite()
+                size_w, size_h = img_base.size
+                size_w, size_h = size_w / 2, size_h / 2
+                img_base.thumbnail((size_w, size_h), resample=Image.LANCZOS)  # 对base图片进行缩放
+                img_base.save(f"{out_put_path}base.png")
+            elif curlayer.name != "base" and not (curlayer.is_group()):
                 img_cur_layer = curlayer.composite()
-                img_cur_layer.save(f"{self.mix_outpath}mix_{curlayer.name}.png")
+                cur_size_w, cur_size_h = img_cur_layer.size
+                cur_size_w, cur_size_h = cur_size_w / 2, cur_size_h / 2
+                img_cur_layer.thumbnail((cur_size_w, cur_size_h), resample=Image.LANCZOS)
+                if curlayer.name in self.all_mix_name:
+                    img_cur_layer.save(f"{self.mix_outpath}mix_{curlayer.name}.png")
+                elif curlayer.name in self.all_frame_name:
+                    frame_name = curlayer.name[0:(int(len(curlayer.name) / 2))]
+                    img_cur_layer.save(f"{self.mix_outpath}mix_{frame_name}_frame.png")
+
 
                 lt_x, lt_y = curlayer.offset
                 c_w, c_h = curlayer.size
                 c_x, c_y = lt_x + c_w / 2, lt_y + c_h / 2
                 mix_frame_xy[curlayer.name] = (c_x, c_y)
                 layer_count += 1
-        for i in range(1, layer_count / 2 + 1):
+        for i in range(1, int(layer_count / 2) + 1):
             cur_mix = mix_frame_xy[f'{i}']
             cur_frame = mix_frame_xy[f'{i}{i}']
             f.write(
-                f"{curlayer.name}:{round(cur_mix[0] * self.px2cm, 3)},{round(cur_mix[1] * self.px2cm, 3)}:{round(cur_frame[0] * self.px2cm, 3)},{round(cur_frame[1] * self.px2cm, 3)}" + '\n')
-            f.close()
+                f"{i}:{format(cur_mix[0] * self.px2cm, '.3f')},{format(cur_mix[1] * self.px2cm, '.3f')}:{format(cur_frame[0] * self.px2cm, '.3f')},{format(cur_frame[1] * self.px2cm, '.3f')}" + '\n')
+        f.close()
+        print(self.outpath + "处理完毕")
