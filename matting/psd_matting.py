@@ -1,7 +1,7 @@
 import base64
 import PIL
 from psd_tools import PSDImage
-from PIL import Image
+from PIL import Image, ImageFilter
 import math
 import operator
 from functools import reduce
@@ -888,8 +888,27 @@ class AutoMattingPSD():
             elif curlayer.name != "base" and not (curlayer.is_group()):
                 img_cur_layer = curlayer.composite()
                 cur_size_w, cur_size_h = img_cur_layer.size
-                cur_size_w, cur_size_h = cur_size_w / 2, cur_size_h / 2
-                img_cur_layer.thumbnail((cur_size_w, cur_size_h), resample=Image.LANCZOS)
+                cur_size_w, cur_size_h = int(cur_size_w / 2), int(cur_size_h / 2)
+                img_cur_layer.thumbnail((cur_size_w, cur_size_h), resample=Image.NEAREST)
+
+                # img_cur_layer1 = img_cur_layer.resize((cur_size_w,cur_size_h), Image.BOX)
+                # resize_img = cv2.resize(curlayer, resize, interpolation=cv2.INTER_LINEAR)
+
+                # img_cur_layer1 = img_cur_layer.filter(ImageFilter.SMOOTH)
+                # img = np.array(img_cur_layer)
+                # height, width = img.shape[:2]
+                # resize = (int(width / 2), int(height / 2))
+                # resize_img = cv2.resize(img, resize, interpolation=cv2.INTER_LINEAR)
+                # img_cur_layer = PIL.Image.fromarray(resize_img)
+
+                # w, h = img_cur_layer.size
+                # r, g, b = self.color
+                # for wi in range(0, w):
+                #     for he in range(0, h):
+                #         pix_color = img_cur_layer.getpixel((wi, he))
+                #         alpha = pix_color[3]
+                #         if not (pix_color == self.green_color or alpha == 0):
+                #             img_cur_layer.putpixel((wi, he), (r, g, b, alpha))  # 消除锯齿
                 if curlayer.name in self.all_mix_name:
                     img_cur_layer.save(f"{self.mix_outpath}mix_{curlayer.name}.png")
                 elif curlayer.name in self.all_frame_name:
