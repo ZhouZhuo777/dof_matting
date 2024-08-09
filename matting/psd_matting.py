@@ -67,8 +67,8 @@ class AutoMattingPSD():
         self.baseframepng = "frame_base.png"
         self.draw_type_dic = dict()
 
-        self.all_mix_name = {'1', '2', '3', '4', '5', '6', '7', '8', '9', '10'}
-        self.all_frame_name = {'11', '22', '33', '44', '55', '66', '77', '88', '99', '1010'}
+        self.all_mix_name = {'1', '2', '3', '4', '5', '6', '7', '8', '9', '10','a','b','c','d','e','f','g','h','i','j','k'}
+        self.all_frame_name = {'11', '22', '33', '44', '55', '66', '77', '88', '99', '1010','aa','bb','cc','dd','ee','ff','gg','hh','ii','jj','kk'}
 
     def play(self):
         print("开始处理：" + self.outpath)
@@ -851,6 +851,56 @@ class AutoMattingPSD():
         ellipse1 = shapely.affinity.rotate(ellipse, elliptic_parameter[2])  # type(ellipse)=polygon
 
         return cur_ellipse1.intersects(ellipse1)
+    def get_layer_mix_name(self,name):
+        if name not in self.layer_list:
+            if name == 'a':
+                return '11'
+            elif name == 'b':
+                return '12'
+            elif name == 'c':
+                return '13'
+            elif name == 'd':
+                return '14'
+            elif name == 'e':
+                return '15'
+            elif name == 'f':
+                return '16'
+            elif name == 'g':
+                return '17'
+            elif name == 'h':
+                return '18'
+            elif name == 'i':
+                return '19'
+            elif name == 'j':
+                return '20'
+            elif name == 'k':
+                return '21'
+        return name
+    def get_layer_frame_name(self,name):
+        if name not in self.layer_list:
+            if name == 'a':
+                return '11'
+            elif name == 'b':
+                return '12'
+            elif name == 'c':
+                return '13'
+            elif name == 'd':
+                return '14'
+            elif name == 'e':
+                return '15'
+            elif name == 'f':
+                return '16'
+            elif name == 'g':
+                return '17'
+            elif name == 'h':
+                return '18'
+            elif name == 'i':
+                return '19'
+            elif name == 'j':
+                return '20'
+            elif name == 'k':
+                return '21'
+        return name
 
     def only_export(self):
         out_put_path = self.outpath
@@ -891,7 +941,7 @@ class AutoMattingPSD():
                 cur_size_w, cur_size_h = int(cur_size_w / 2), int(cur_size_h / 2)
                 img_cur_layer.thumbnail((cur_size_w, cur_size_h), resample=Image.NEAREST)
 
-                # img_cur_layer1 = img_cur_layer.resize((cur_size_w,cur_size_h), Image.BOX)
+                img_cur_layer1 = img_cur_layer.resize((cur_size_w,cur_size_h), Image.Resampling.LANCZOS)
                 # resize_img = cv2.resize(curlayer, resize, interpolation=cv2.INTER_LINEAR)
 
                 # img_cur_layer1 = img_cur_layer.filter(ImageFilter.SMOOTH)
@@ -910,9 +960,11 @@ class AutoMattingPSD():
                 #         if not (pix_color == self.green_color or alpha == 0):
                 #             img_cur_layer.putpixel((wi, he), (r, g, b, alpha))  # 消除锯齿
                 if curlayer.name in self.all_mix_name:
-                    img_cur_layer.save(f"{self.mix_outpath}mix_{curlayer.name}.png")
+                    layer_name = self.get_layer_mix_name(curlayer.name)
+                    img_cur_layer.save(f"{self.mix_outpath}mix_{layer_name}.png")
                 elif curlayer.name in self.all_frame_name:
                     frame_name = curlayer.name[0:(int(len(curlayer.name) / 2))]
+                    frame_name = self.get_layer_mix_name(frame_name)
                     img_cur_layer.save(f"{self.mix_outpath}mix_{frame_name}_frame.png")
 
 
@@ -922,8 +974,14 @@ class AutoMattingPSD():
                 mix_frame_xy[curlayer.name] = (c_x, c_y)
                 layer_count += 1
         for i in range(1, int(layer_count / 2) + 1):
-            cur_mix = mix_frame_xy[f'{i}']
-            cur_frame = mix_frame_xy[f'{i}{i}']
+            if i <= 10:
+                cur_mix = mix_frame_xy[f'{i}']
+                cur_frame = mix_frame_xy[f'{i}{i}']
+            else:
+                char_a = 'a'
+                cur_char = chr(ord(char_a) + (i-11))
+                cur_mix = mix_frame_xy[f'{cur_char}']
+                cur_frame = mix_frame_xy[f'{cur_char}{cur_char}']
             f.write(
                 f"{i}:{format(cur_mix[0] * self.px2cm, '.3f')},{format(cur_mix[1] * self.px2cm, '.3f')}:{format(cur_frame[0] * self.px2cm, '.3f')},{format(cur_frame[1] * self.px2cm, '.3f')}" + '\n')
         f.close()
