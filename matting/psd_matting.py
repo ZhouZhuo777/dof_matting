@@ -67,8 +67,9 @@ class AutoMattingPSD():
         self.baseframepng = "frame_base.png"
         self.draw_type_dic = dict()
 
-        self.all_mix_name = {'1', '2', '3', '4', '5', '6', '7', '8', '9', '10','a','b','c','d','e','f','g','h','i','j','k'}
-        self.all_frame_name = {'11', '22', '33', '44', '55', '66', '77', '88', '99', '1010','aa','bb','cc','dd','ee','ff','gg','hh','ii','jj','kk'}
+        #大小写都行
+        self.all_mix_name = {'1', '2', '3', '4', '5', '6', '7', '8', '9', '10','a','b','c','d','e','f','g','h','i','j','k','A','B','C','D','E','F','G','H','I','J','K'}
+        self.all_frame_name = {'11', '22', '33', '44', '55', '66', '77', '88', '99', '1010','aa','bb','cc','dd','ee','ff','gg','hh','ii','jj','kk','AA','BB','CC','DD','EE','FF','GG','HH','II','JJ','KK'}
 
     def play(self):
         print("开始处理：" + self.outpath)
@@ -853,52 +854,52 @@ class AutoMattingPSD():
         return cur_ellipse1.intersects(ellipse1)
     def get_layer_mix_name(self,name):
         if name not in self.layer_list:
-            if name == 'a':
+            if name == 'a' or name == 'A':
                 return '11'
-            elif name == 'b':
+            elif name == 'b' or name == 'B':
                 return '12'
-            elif name == 'c':
+            elif name == 'c' or name == 'C':
                 return '13'
-            elif name == 'd':
+            elif name == 'd' or name == 'D':
                 return '14'
-            elif name == 'e':
+            elif name == 'e' or name == 'E':
                 return '15'
-            elif name == 'f':
+            elif name == 'f' or name == 'F':
                 return '16'
-            elif name == 'g':
+            elif name == 'g' or name == 'G':
                 return '17'
-            elif name == 'h':
+            elif name == 'h' or name == 'H':
                 return '18'
-            elif name == 'i':
+            elif name == 'i' or name == 'I':
                 return '19'
-            elif name == 'j':
+            elif name == 'j' or name == 'J':
                 return '20'
-            elif name == 'k':
+            elif name == 'k' or name == 'K':
                 return '21'
         return name
     def get_layer_frame_name(self,name):
         if name not in self.layer_list:
-            if name == 'a':
+            if name == 'a' or name == 'A':
                 return '11'
-            elif name == 'b':
+            elif name == 'b' or name == 'B':
                 return '12'
-            elif name == 'c':
+            elif name == 'c' or name == 'C':
                 return '13'
-            elif name == 'd':
+            elif name == 'd' or name == 'D':
                 return '14'
-            elif name == 'e':
+            elif name == 'e' or name == 'E':
                 return '15'
-            elif name == 'f':
+            elif name == 'f' or name == 'F':
                 return '16'
-            elif name == 'g':
+            elif name == 'g' or name == 'G':
                 return '17'
-            elif name == 'h':
+            elif name == 'h' or name == 'H':
                 return '18'
-            elif name == 'i':
+            elif name == 'i' or name == 'I':
                 return '19'
-            elif name == 'j':
+            elif name == 'j' or name == 'J':
                 return '20'
-            elif name == 'k':
+            elif name == 'k' or name == 'K':
                 return '21'
         return name
 
@@ -978,10 +979,19 @@ class AutoMattingPSD():
                 cur_mix = mix_frame_xy[f'{i}']
                 cur_frame = mix_frame_xy[f'{i}{i}']
             else:
-                char_a = 'a'
-                cur_char = chr(ord(char_a) + (i-11))
-                cur_mix = mix_frame_xy[f'{cur_char}']
-                cur_frame = mix_frame_xy[f'{cur_char}{cur_char}']
+                char_a_low = 'a'
+                char_a_cap = 'A'
+                cur_char_low = chr(ord(char_a_low) + (i-11))
+                cur_char_cap = chr(ord(char_a_cap) + (i-11))
+                if f'{char_a_low}' in mix_frame_xy.keys():
+                    cur_mix = mix_frame_xy[f'{char_a_low}']
+                else:
+                    cur_mix = mix_frame_xy[f'{char_a_cap}']
+
+                if f'{cur_char_low}' in mix_frame_xy.keys():
+                    cur_frame = mix_frame_xy[f'{cur_char_low}{cur_char_low}']
+                else:
+                    cur_frame = mix_frame_xy[f'{cur_char_cap}{cur_char_cap}']
             f.write(
                 f"{i}:{format(cur_mix[0] * self.px2cm, '.3f')},{format(cur_mix[1] * self.px2cm, '.3f')}:{format(cur_frame[0] * self.px2cm, '.3f')},{format(cur_frame[1] * self.px2cm, '.3f')}" + '\n')
         f.close()
