@@ -983,10 +983,10 @@ class AutoMattingPSD():
                 char_a_cap = 'A'
                 cur_char_low = chr(ord(char_a_low) + (i-11))
                 cur_char_cap = chr(ord(char_a_cap) + (i-11))
-                if f'{char_a_low}' in mix_frame_xy.keys():
-                    cur_mix = mix_frame_xy[f'{char_a_low}']
+                if f'{cur_char_low}' in mix_frame_xy.keys():
+                    cur_mix = mix_frame_xy[f'{cur_char_low}']
                 else:
-                    cur_mix = mix_frame_xy[f'{char_a_cap}']
+                    cur_mix = mix_frame_xy[f'{cur_char_cap}']
 
                 if f'{cur_char_low}' in mix_frame_xy.keys():
                     cur_frame = mix_frame_xy[f'{cur_char_low}{cur_char_low}']
