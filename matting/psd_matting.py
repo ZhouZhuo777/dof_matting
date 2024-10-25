@@ -903,6 +903,26 @@ class AutoMattingPSD():
                 return '21'
         return name
 
+    def check_hide(self,psd):
+        # psd = PSDImage.open(self.psd)
+        hide_layer = []
+        for curlayer in psd:
+            if curlayer.is_group():
+                for layer_lower in curlayer:
+                    if not layer_lower.is_visible():
+                        hide_layer.append(layer_lower.name)
+                        layer_lower.visible = True
+            elif not curlayer.is_visible():
+                curlayer.visible = True
+                hide_layer.append(curlayer.name)
+        if len(hide_layer) > 0:
+            all_hide = f'{self.psd_name} 隐藏的图层：'
+            for lay in hide_layer:
+                all_hide += f' {lay} '
+            # return all_hide
+        # return None
+
+
     def only_export(self):
         out_put_path = self.outpath
         a = Path(out_put_path)
@@ -911,6 +931,8 @@ class AutoMattingPSD():
         b.mkdir(exist_ok=True)
 
         psd = PSDImage.open(self.psd)
+        self.check_hide(psd)
+        psd.save(self.psd)
         psd.save(f"{out_put_path}{self.psd_name}")
         img_num_base = None
         img_base = None
@@ -965,7 +987,7 @@ class AutoMattingPSD():
                     img_cur_layer.save(f"{self.mix_outpath}mix_{layer_name}.png")
                 elif curlayer.name in self.all_frame_name:
                     frame_name = curlayer.name[0:(int(len(curlayer.name) / 2))]
-                    frame_name = self.get_layer_mix_name(frame_name)
+                    frame_name = self.get_layer_frame_name(frame_name)
                     img_cur_layer.save(f"{self.mix_outpath}mix_{frame_name}_frame.png")
 
 

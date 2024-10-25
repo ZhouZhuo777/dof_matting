@@ -42,6 +42,7 @@ class w_frame(dof_psd_ui.DofPsdUI):
         print('psd数量：',len(psd_list))
         n = 0
         errorList = []
+        # hideList = []
         for psd in psd_list:
             psd_path = f"{img_lib_path}/{psd}"
             n += 1
@@ -51,13 +52,25 @@ class w_frame(dof_psd_ui.DofPsdUI):
                 dir_name = psd.replace('.psd', '')
                 outPath = img_lib_path + f'/{dir_name}/'
                 mat = psd_matting.AutoMattingPSD(psd=psd_path, outpath=outPath, is_save_huidu=is_save_huidu, psd_name=psd)
+                # hide_str = mat.check_hide()
+                # if hide_str is not None:
+                #   hideList.append(hide_str)
                 mat.only_export()
             except:
                 errorList.append(psd)
+
         if len(errorList) > 0:
+            print('\n')
+            print("---------重要内容-------------")
             print("有错误的 psd 有：")
             for psd_name in errorList:
                 print(psd_name)
+        # if len(hideList) > 0:
+        #     print('\n')
+        #     print("---------重要内容-------------")
+        #     print("有隐藏图层的 psd 有：")
+        #     for psd in hideList:
+        #         print(psd)
         print('结束，已经全部导出')
 
 
